@@ -1,0 +1,337 @@
+
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Viveka Backend API - Test Report</title>
+      <style>
+        * { font-family: Arial, sans-serif; }
+        body { margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1 { color: #333; border-bottom: 2px solid #007bff; padding-bottom: 10px; }
+        .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin: 20px 0; }
+        .summary-card { padding: 15px; border-radius: 5px; text-align: center; }
+        .summary-card h3 { margin: 0; color: white; }
+        .summary-card p { margin: 5px 0 0 0; font-size: 24px; font-weight: bold; color: white; }
+        .total { background: #007bff; }
+        .pass { background: #28a745; }
+        .fail { background: #dc3545; }
+        .duration { background: #6c757d; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th { background: #007bff; color: white; padding: 10px; text-align: left; }
+        td { padding: 10px; border-bottom: 1px solid #ddd; }
+        tr.pass { background: #d4edda; }
+        tr.fail { background: #f8d7da; }
+        .progress-bar { width: 100%; height: 20px; background: #e9ecef; border-radius: 3px; overflow: hidden; margin: 10px 0; }
+        .progress-fill { height: 100%; background: #28a745; width: 93.75%; }
+        .footer { text-align: center; margin-top: 20px; color: #666; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <h1>🧪 Viveka Backend API - Test Report</h1>
+        
+        <div class="summary">
+          <div class="summary-card total">
+            <h3>Total Tests</h3>
+            <p>32</p>
+          </div>
+          <div class="summary-card pass">
+            <h3>Passed</h3>
+            <p>30</p>
+          </div>
+          <div class="summary-card fail">
+            <h3>Failed</h3>
+            <p>2</p>
+          </div>
+          <div class="summary-card duration">
+            <h3>Duration</h3>
+            <p>6.17s</p>
+          </div>
+        </div>
+
+        <div>
+          <h3>Pass Rate: 93.75%</h3>
+          <div class="progress-bar">
+            <div class="progress-fill"></div>
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Test Name</th>
+              <th>Status</th>
+              <th>Message</th>
+              <th>Duration</th>
+              <th>Timestamp</th>
+            </tr>
+          </thead>
+          <tbody>
+            
+      <tr class="pass">
+        <td>1. Send OTP</td>
+        <td>PASS</td>
+        <td>Test passed</td>
+        <td>211ms</td>
+        <td>2026-01-04T13:49:07.158Z</td>
+      </tr>
+    
+      <tr class="pass">
+        <td>2. Verify OTP</td>
+        <td>PASS</td>
+        <td>Test passed</td>
+        <td>622ms</td>
+        <td>2026-01-04T13:49:07.781Z</td>
+      </tr>
+    
+      <tr class="pass">
+        <td>3. Clear OTP</td>
+        <td>PASS</td>
+        <td>Test passed</td>
+        <td>72ms</td>
+        <td>2026-01-04T13:49:07.854Z</td>
+      </tr>
+    
+      <tr class="pass">
+        <td>4. Register Client</td>
+        <td>PASS</td>
+        <td>Test passed</td>
+        <td>223ms</td>
+        <td>2026-01-04T13:49:08.078Z</td>
+      </tr>
+    
+      <tr class="pass">
+        <td>5. Login Client</td>
+        <td>PASS</td>
+        <td>Test passed</td>
+        <td>385ms</td>
+        <td>2026-01-04T13:49:08.464Z</td>
+      </tr>
+    
+      <tr class="pass">
+        <td>6. Get Client Details</td>
+        <td>PASS</td>
+        <td>Test passed</td>
+        <td>71ms</td>
+        <td>2026-01-04T13:49:08.536Z</td>
+      </tr>
+    
+      <tr class="pass">
+        <td>7. Logout Client</td>
+        <td>PASS</td>
+        <td>Test passed</td>
+        <td>72ms</td>
+        <td>2026-01-04T13:49:08.608Z</td>
+      </tr>
+    
+      <tr class="pass">
+        <td>8. Create Item Group</td>
+        <td>PASS</td>
+        <td>Test passed</td>
+        <td>75ms</td>
+        <td>2026-01-04T13:49:08.683Z</td>
+      </tr>
+    
+      <tr class="pass">
+        <td>9. Get Item Groups</td>
+        <td>PASS</td>
+        <td>Test passed</td>
+        <td>71ms</td>
+        <td>2026-01-04T13:49:08.754Z</td>
+      </tr>
+    
+      <tr class="pass">
+        <td>10. Update Item Group</td>
+        <td>PASS</td>
+        <td>Test passed</td>
+        <td>78ms</td>
+        <td>2026-01-04T13:49:08.832Z</td>
+      </tr>
+    
+      <tr class="pass">
+        <td>11. Delete Item Group</td>
+        <td>PASS</td>
+        <td>Test passed</td>
+        <td>69ms</td>
+        <td>2026-01-04T13:49:08.901Z</td>
+      </tr>
+    
+      <tr class="pass">
+        <td>12. Create Item Group (2)</td>
+        <td>PASS</td>
+        <td>Test passed</td>
+        <td>70ms</td>
+        <td>2026-01-04T13:49:08.972Z</td>
+      </tr>
+    
+      <tr class="pass">
+        <td>13. Create Item</td>
+        <td>PASS</td>
+        <td>Test passed</td>
+        <td>76ms</td>
+        <td>2026-01-04T13:49:09.048Z</td>
+      </tr>
+    
+      <tr class="pass">
+        <td>14. Get Items</td>
+        <td>PASS</td>
+        <td>Test passed</td>
+        <td>64ms</td>
+        <td>2026-01-04T13:49:09.113Z</td>
+      </tr>
+    
+      <tr class="pass">
+        <td>15. Get Items By Group</td>
+        <td>PASS</td>
+        <td>Test passed</td>
+        <td>71ms</td>
+        <td>2026-01-04T13:49:09.186Z</td>
+      </tr>
+    
+      <tr class="pass">
+        <td>16. Update Item</td>
+        <td>PASS</td>
+        <td>Test passed</td>
+        <td>77ms</td>
+        <td>2026-01-04T13:49:09.263Z</td>
+      </tr>
+    
+      <tr class="pass">
+        <td>17. Delete Item</td>
+        <td>PASS</td>
+        <td>Test passed</td>
+        <td>70ms</td>
+        <td>2026-01-04T13:49:09.333Z</td>
+      </tr>
+    
+      <tr class="pass">
+        <td>18. Create Item (2)</td>
+        <td>PASS</td>
+        <td>Test passed</td>
+        <td>68ms</td>
+        <td>2026-01-04T13:49:09.401Z</td>
+      </tr>
+    
+      <tr class="pass">
+        <td>19. Get/Create Customer</td>
+        <td>PASS</td>
+        <td>Test passed</td>
+        <td>136ms</td>
+        <td>2026-01-04T13:49:09.537Z</td>
+      </tr>
+    
+      <tr class="pass">
+        <td>20. Get Customers</td>
+        <td>PASS</td>
+        <td>Test passed</td>
+        <td>67ms</td>
+        <td>2026-01-04T13:49:09.604Z</td>
+      </tr>
+    
+      <tr class="pass">
+        <td>21. Create Cart</td>
+        <td>PASS</td>
+        <td>Test passed</td>
+        <td>79ms</td>
+        <td>2026-01-04T13:49:09.684Z</td>
+      </tr>
+    
+      <tr class="pass">
+        <td>22. Add To Cart</td>
+        <td>PASS</td>
+        <td>Test passed</td>
+        <td>202ms</td>
+        <td>2026-01-04T13:49:09.887Z</td>
+      </tr>
+    
+      <tr class="pass">
+        <td>23. Get Cart</td>
+        <td>PASS</td>
+        <td>Test passed</td>
+        <td>125ms</td>
+        <td>2026-01-04T13:49:10.012Z</td>
+      </tr>
+    
+      <tr class="pass">
+        <td>24. Remove From Cart</td>
+        <td>PASS</td>
+        <td>Test passed</td>
+        <td>203ms</td>
+        <td>2026-01-04T13:49:10.216Z</td>
+      </tr>
+    
+      <tr class="pass">
+        <td>25. Clear Cart</td>
+        <td>PASS</td>
+        <td>Test passed</td>
+        <td>347ms</td>
+        <td>2026-01-04T13:49:10.564Z</td>
+      </tr>
+    
+      <tr class="pass">
+        <td>26. Create Cart For Invoice</td>
+        <td>PASS</td>
+        <td>Test passed</td>
+        <td>289ms</td>
+        <td>2026-01-04T13:49:10.854Z</td>
+      </tr>
+    
+      <tr class="fail">
+        <td>27. Generate Invoice</td>
+        <td>FAIL</td>
+        <td>Request failed with status code 400</td>
+        <td>303ms</td>
+        <td>2026-01-04T13:49:11.158Z</td>
+      </tr>
+    
+      <tr class="fail">
+        <td>28. Create Incomplete Sale</td>
+        <td>FAIL</td>
+        <td>Request failed with status code 500</td>
+        <td>82ms</td>
+        <td>2026-01-04T13:49:11.240Z</td>
+      </tr>
+    
+      <tr class="pass">
+        <td>29. Get Invoices</td>
+        <td>PASS</td>
+        <td>Test passed</td>
+        <td>141ms</td>
+        <td>2026-01-04T13:49:11.382Z</td>
+      </tr>
+    
+      <tr class="pass">
+        <td>30. Get Purchase History</td>
+        <td>PASS</td>
+        <td>Test passed</td>
+        <td>65ms</td>
+        <td>2026-01-04T13:49:11.448Z</td>
+      </tr>
+    
+      <tr class="pass">
+        <td>31. Get Purchase History By Customer</td>
+        <td>PASS</td>
+        <td>Test passed</td>
+        <td>64ms</td>
+        <td>2026-01-04T13:49:11.512Z</td>
+      </tr>
+    
+      <tr class="pass">
+        <td>32. Health Check</td>
+        <td>PASS</td>
+        <td>Test passed</td>
+        <td>4ms</td>
+        <td>2026-01-04T13:49:11.516Z</td>
+      </tr>
+    
+          </tbody>
+        </table>
+
+        <div class="footer">
+          <p>Generated on 4/1/2026, 7:19:11 pm</p>
+          <p>Viveka Backend API - Automated Test Suite v1.0</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  
