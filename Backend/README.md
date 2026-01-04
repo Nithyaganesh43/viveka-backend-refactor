@@ -146,8 +146,8 @@ Notes: endpoints use JSON. Where applicable include `Authorization: Bearer <toke
     ```json
     {
       "clientId": "<clientId>",
-      "name": "Beverages",
-      "description": "Cold drinks"
+      "name": "Engine Parts",
+      "description": "All engine-related spare parts"
     }
     ```
   - Success (201):
@@ -160,14 +160,18 @@ Notes: endpoints use JSON. Where applicable include `Authorization: Bearer <toke
   - Auth: none (clientId path param)
   - Success (200):
     ```json
-    { "success": true, "data": [{ "groupId": "g1", "name": "Beverages" }] }
+    { "success": true, "data": [{ "groupId": "g1", "name": "Engine Parts" }] }
     ```
 
-- PATCH /business/item-groups/:clientId/:groupId
+- PUT /business/item-groups/:clientId/:groupId
 
   - Body example:
     ```json
-    { "name": "Drinks", "description": "All drinks" }
+    { "name": "Engine Parts - Updated", "description": "Updated description" }
+    ```
+  - Success (200):
+    ```json
+    { "success": true, "message": "Item group updated" }
     ```
 
 - DELETE /business/item-groups/:clientId/:groupId
@@ -181,22 +185,27 @@ Notes: endpoints use JSON. Where applicable include `Authorization: Bearer <toke
     ```json
     {
       "clientId": "<clientId>",
-      "name": "Coke 500ml",
-      "price": 40,
-      "unit": "bottle",
+      "name": "Carburetor",
+      "price": 2500,
+      "unit": "nos",
       "groupId": "<groupId>",
-      "description": "Chilled"
+      "description": "2-barrel carburetor"
     }
     ```
   - Success (201): `{ "success": true, "data": { "itemId":"<itemId>" } }`
 
-- GET /business/items/:clientId?groupId=<groupId>
+- GET /business/items/:clientId
 
   - Returns list of items; filter by `groupId` optional.
+  - Query param: `?groupId=<groupId>`
 
-- PATCH /business/items/:clientId/:itemId
+- PUT /business/items/:clientId/:itemId
 
   - Body allows `name`, `price`, `unit`, `description`, `groupId` updates.
+  - Success (200):
+    ```json
+    { "success": true, "message": "Item updated" }
+    ```
 
 - DELETE /business/items/:clientId/:itemId
   - Success (200): `{ "success": true, "message": "Item deleted" }`
@@ -216,7 +225,7 @@ Notes: endpoints use JSON. Where applicable include `Authorization: Bearer <toke
 
 ### Cart
 
-- POST /business/cart
+- POST /business/carts
 
   - Create cart for a customer. Body:
     ```json
@@ -224,35 +233,38 @@ Notes: endpoints use JSON. Where applicable include `Authorization: Bearer <toke
     ```
   - Success (201): `{ "success": true, "data": { "cartId": "<cartId>" } }`
 
-- POST /business/cart/add
+- POST /business/carts/add-item
 
   - Add item to cart. Body:
     ```json
     {
       "cartId": "<cartId>",
       "itemId": "<itemId>",
-      "itemName": "Coke",
-      "unitPrice": 40,
+      "itemName": "Carburetor",
+      "unitPrice": 2500,
       "quantity": 2
     }
     ```
+  - Success (200): `{ "success": true, "data": { "cartItemId": "<cartItemId>" } }`
 
-- GET /business/cart/:cartId
+- GET /business/carts/:cartId
 
   - Returns cart contents and totals.
 
-- POST /business/cart/remove
+- POST /business/carts/remove-item
 
   - Body: `{ "cartId":"<cartId>", "cartItemId":"<cartItemId>" }`
+  - Success (200): `{ "success": true, "message": "Item removed from cart" }`
 
-- POST /business/cart/clear
+- POST /business/carts/clear
   - Body: `{ "cartId":"<cartId>" }` — clears cart items.
+  - Success (200): `{ "success": true, "message": "Cart cleared" }`
 
 ### Invoices & Payments
 
 Invoices must be generated only when the bill is paid in full. For partial or installment payments, use the `incomplete-sale` flow; an invoice will not be created until the full amount is received.
 
-- POST /business/invoice (create invoice)
+- POST /business/invoices/generate (create invoice)
 
   - Body example (invoice creation requires full payment):
     ```json
@@ -260,8 +272,8 @@ Invoices must be generated only when the bill is paid in full. For partial or in
       "clientId": "<clientId>",
       "customerId": "<customerId>",
       "cartId": "<cartId>",
-      "totalAmount": 100,
-      "paidAmount": 100,
+      "totalAmount": 5000,
+      "paidAmount": 5000,
       "notes": "Full payment received"
     }
     ```
@@ -271,55 +283,72 @@ Invoices must be generated only when the bill is paid in full. For partial or in
       "success": true,
       "invoice": {
         "_id": "<invoiceId>",
-        "totalAmount": 100,
-        "paidAmount": 100,
+        "totalAmount": 5000,
+        "paidAmount": 5000,
         "isFinalized": true
       }
     }
     ```
-  - Notes: If `paidAmount` is less than `totalAmount` the API will return an error instructing to use `/business/incomplete-sale` instead.
+  - Notes: If `paidAmount` is less than `totalAmount` the API will return an error instructing to use `/business/invoices/incomplete-sale` instead.
 
-- POST /business/invoices/pay (record payment)
+- POST /business/invoices/incomplete-sale
+
+  - Create incomplete sale record when paid < total. Body:
+    ```json
+    {
+      "clientId": "<clientId>",
+      "customerPhone": "9891112222",
+      "cartId": "<cartId>",
+      "totalAmount": 5000,
+      "paidAmount": 2500,
+      "notes": "Partial payment - pending 2500"
+    }
+    ```
+  - Success (201):
+    ```json
+    {
+      "success": true,
+      "message": "Incomplete sale recorded"
+    }
+    ```
+
+- POST /business/invoices/pay (record additional payment)
 
   - Body example:
     ```json
     {
       "clientId": "<clientId>",
       "invoiceId": "<invoiceId>",
-      "amount": 50,
+      "amount": 2500,
       "method": "cash",
-      "note": "Payment toward invoice"
+      "note": "Additional payment"
     }
     ```
   - Success (200):
     ```json
     {
       "success": true,
-      "payment": { "_id": "<paymentId>", "amount": 50 },
+      "payment": { "_id": "<paymentId>", "amount": 2500 },
       "invoice": {
         "_id": "<invoiceId>",
-        "paidAmount": 150,
+        "paidAmount": 5000,
         "isFinalized": true
       }
     }
     ```
-  - Notes: This endpoint records payments against an existing invoice. Invoices created by this system are expected to be paid-in-full at creation; this endpoint is provided for recording any additional payments against invoices if needed.
 
 - GET /business/invoices/:invoiceId/payments
 
   - Returns array of payments recorded for the invoice.
 
-- POST /business/incomplete-sale
-
-  - Use for recording in-place incomplete sales when not using invoices. Creates an `IncompleteSale` record with `paidAmount` &lt; `totalAmount`.
-
 - GET /business/invoices/:clientId
 
   - Returns invoices for the client; each invoice contains `totalAmount`, `paidAmount`, `isFinalized` and timestamps.
 
-- GET /business/purchase-history/:clientId?customerId=<id>
+- GET /business/purchase-history/:clientId
 
   - Returns purchase history; optional filter by `customerId`.
+  - Query param: `?customerId=<customerId>`
 
 For full request/response examples, see `documentation/POSTMAN_GUIDE.md` or the Postman collection in `documentation/`.
 participant U as User (Mobile)
@@ -438,25 +467,27 @@ Endpoints (grouped) — concise reference with method, path, auth and purpose.
 
   - POST `/business/item-groups` — create item group
   - GET `/business/item-groups/:clientId` — list groups
-  - PATCH `/business/item-groups/:clientId/:groupId` — update group
+  - PUT `/business/item-groups/:clientId/:groupId` — update group
   - DELETE `/business/item-groups/:clientId/:groupId` — delete group
 
   - POST `/business/items` — create item (clientId, name, price, unit, groupId opt)
   - GET `/business/items/:clientId` — list items (query: groupId optional)
-  - PATCH `/business/items/:clientId/:itemId` — update item
+  - PUT `/business/items/:clientId/:itemId` — update item
   - DELETE `/business/items/:clientId/:itemId` — delete item
 
   - POST `/business/customers` — create/get customer by phone
   - GET `/business/customers/:clientId` — list customers
 
-  - POST `/business/cart` — create cart for a customer
-  - POST `/business/cart/add` — add item to cart
-  - GET `/business/cart/:cartId` — get cart
-  - POST `/business/cart/remove` — remove item from cart
-  - POST `/business/cart/clear` — clear cart
+  - POST `/business/carts` — create cart for a customer
+  - POST `/business/carts/add-item` — add item to cart
+  - GET `/business/carts/:cartId` — get cart
+  - POST `/business/carts/remove-item` — remove item from cart
+  - POST `/business/carts/clear` — clear cart
 
-  - POST `/business/invoice` — generate invoice (must meet paid==total rule)
-  - POST `/business/incomplete-sale` — record incomplete sale (paid < total)
+  - POST `/business/invoices/generate` — generate invoice (must meet paid==total rule)
+  - POST `/business/invoices/incomplete-sale` — record incomplete sale (paid < total)
+  - POST `/business/invoices/pay` — record additional payment against invoice
+  - GET `/business/invoices/:invoiceId/payments` — get payments for invoice
   - GET `/business/invoices/:clientId` — list invoices
   - GET `/business/purchase-history/:clientId` — list purchase history (query customerId opt)
 

@@ -747,7 +747,44 @@
           "response": []
         },
         {
-          "name": "27. Get Purchase History (All)",
+          "name": "27. Record Payment Against Invoice",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clientId\": \"{{clientId}}\",\n  \"invoiceId\": \"{{invoiceId}}\",\n  \"amount\": 2500,\n  \"method\": \"cash\",\n  \"note\": \"Additional payment\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/business/invoices/pay",
+              "host": ["{{baseUrl}}"],
+              "path": ["business", "invoices", "pay"]
+            },
+            "description": "Record a payment against an existing invoice (supports multiple payments)"
+          },
+          "response": []
+        },
+        {
+          "name": "28. Get Payments for Invoice",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/business/invoices/{{invoiceId}}/payments",
+              "host": ["{{baseUrl}}"],
+              "path": ["business", "invoices", "{{invoiceId}}", "payments"]
+            },
+            "description": "Get all payments recorded for a specific invoice"
+          },
+          "response": []
+        },
+        {
+          "name": "29. Get Purchase History (All)",
           "request": {
             "method": "GET",
             "header": [],
@@ -761,7 +798,7 @@
           "response": []
         },
         {
-          "name": "28. Get Purchase History (By Customer)",
+          "name": "30. Get Purchase History (By Customer)",
           "request": {
             "method": "GET",
             "header": [],
@@ -786,7 +823,7 @@
       "name": "Health & Status",
       "item": [
         {
-          "name": "29. Health Check",
+          "name": "31. Health Check",
           "request": {
             "method": "GET",
             "header": [],
