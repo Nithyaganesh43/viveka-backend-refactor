@@ -10,8 +10,221 @@ This README provides a concise architecture overview, API reference, run instruc
 
 - Overview
 - Architecture (diagram & flow)
+- System Flow Diagram
 - Quick start
 - Environment
+
+## System Flow Diagram
+
+### Complete User Journey: OTP → Registration → Billing
+
+```mermaid
+graph TD
+    A[Mobile Client] -->|1. POST /otp/send<br/>phoneNumber| B[OTP Controller]
+    B -->|Validate phone| C[OTP Service]
+    C -->|Store in DB<br/>otpSessions| D[(MongoDB)]
+    C -->|Return OTP| B
+    B -->|Return success| A
+
+    A -->|2. POST /otp/verify<br/>phoneNumber, OTP| B
+    B -->|Verify against DB| C
+    C -->|Match OTP| D
+    D -->|Success| C
+    C -->|Return verified| B
+    B -->|Return success| A
+
+    A -->|3. POST /auth/register<br/>phoneNumber, password,<br/>ownerName, businessName| E[Auth Controller]
+    E -->|Hash password| F[Auth Service]
+    F -->|Create client record| D
+    D -->|clientId generated| F
+    F -->|Return clientId| E
+    E -->|Return success| A
+
+    A -->|4. POST /auth/login<br/>phoneNumber, password,<br/>deviceId, deviceName| E
+    E -->|Verify credentials| F
+    F -->|Check device policy<br/>one-user-one-device| D
+    D -->|Invalidate prev session| F
+    F -->|Create deviceSession<br/>Generate JWT| D
+    D -->|Return token| F
+    F -->|Return token,<br/>clientId, sessionId| E
+    E -->|Return success| A
+
+    A -->|5a. POST /business/item-groups<br/>clientId, name, description| G[Business Controller]
+    G -->|Create group| H[Business Service]
+    H -->|Insert itemGroups| D
+    D -->|groupId| H
+    H -->|Return groupId| G
+    G -->|Return success| A
+
+    A -->|5b. POST /business/items<br/>clientId, name, price,<br/>unit, groupId| G
+    G -->|Create item| H
+    H -->|Insert items| D
+    D -->|itemId| H
+    H -->|Return itemId| G
+    G -->|Return success| A
+
+    A -->|6. POST /business/customers<br/>clientId, phoneNumber| G
+    G -->|Get/Create customer| H
+    H -->|Query customers<br/>by phone| D
+    D -->|customerId| H
+    H -->|Return customerId| G
+    G -->|Return success| A
+
+    A -->|7. POST /business/carts<br/>clientId, customerPhone| G
+    G -->|Create cart| H
+    H -->|Insert carts| D
+    D -->|cartId| H
+    H -->|Return cartId| G
+    G -->|Return success| A
+
+    A -->|8. POST /business/carts/add-item<br/>cartId, itemId, quantity,<br/>unitPrice| G
+    G -->|Add to cart| H
+    H -->|Insert cartItems| D
+    D -->|Success| H
+    H -->|Return cartItemId| G
+    G -->|Return success| A
+
+    A -->|9. GET /business/carts/:cartId| G
+    G -->|Fetch cart| H
+    H -->|Query cartItems| D
+    D -->|Return items & total| H
+    H -->|Calculate total| H
+    H -->|Return cart data| G
+    G -->|Return cart| A
+
+    A -->|10a. Payment Check:<br/>Paid == Total?| A
+    A -->|YES: Full Payment| I{Generate Invoice}
+    A -->|NO: Partial Payment| J{Incomplete Sale}
+
+    I -->|POST /business/invoices/generate<br/>clientId, customerId, cartId,<br/>totalAmount, paidAmount| G
+    G -->|Validate payment| H
+    H -->|paidAmount == totalAmount?| H
+    H -->|YES: Create invoice| D
+    D -->|invoiceId, isFinalized=true| H
+    H -->|Also create purchaseHistory| D
+    D -->|Success| H
+    H -->|Return invoice| G
+    G -->|Return success| A
+
+    J -->|POST /business/invoices/incomplete-sale<br/>clientId, customerPhone, cartId,<br/>totalAmount, paidAmount| G
+    G -->|Record partial sale| H
+    H -->|Create incompleteSale record| D
+    D -->|Success| H
+    H -->|Return success| G
+    G -->|Return success| A
+
+    A -->|11. GET /business/purchase-history/:clientId| G
+    G -->|Fetch history| H
+    H -->|Query purchaseHistories| D
+    D -->|Return history by phone| H
+    H -->|Return history| G
+    G -->|Return history| A
+```
+
+### Core Architecture Layers
+
+```mermaid
+graph LR
+    subgraph CLIENT["📱 Client Layer"]
+        FA["Frontend App<br/>Mobile Device"]
+    end
+
+    subgraph API["🌐 API Layer"]
+        AR["Routes<br/>authRoutes<br/>businessRoutes<br/>otpRoutes"]
+        AC["Controllers<br/>authController<br/>businessController<br/>otpController"]
+    end
+
+    subgraph SERVICE["⚙️ Service Layer"]
+        AS["Services<br/>authService<br/>businessService<br/>otpService"]
+    end
+
+    subgraph DATA["💾 Data Layer"]
+        DB["MongoDB<br/>Collections:<br/>clients, devices,<br/>otpSessions, items,<br/>itemGroups, customers,<br/>carts, invoices,<br/>purchaseHistories"]
+    end
+
+    FA -->|HTTP Requests| AR
+    AR -->|Route to| AC
+    AC -->|Business Logic| AS
+    AS -->|CRUD Operations| DB
+    DB -->|Data Response| AS
+    AS -->|Formatted Response| AC
+    AC -->|JSON Response| AR
+    AR -->|HTTP Response| FA
+```
+
+### Authentication & Device Flow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant API
+    participant Service
+    participant DB
+
+    User->>API: 1. POST /otp/send {phoneNumber}
+    API->>Service: Generate mock OTP
+    Service->>DB: Store in otpSessions (TTL)
+    DB-->>Service: Success
+    Service-->>API: OTP token
+    API-->>User: OTP sent (logged to console)
+
+    User->>API: 2. POST /otp/verify {phoneNumber, otp}
+    API->>Service: Verify OTP
+    Service->>DB: Check otpSessions
+    DB-->>Service: OTP valid
+    Service-->>API: Verified
+    API-->>User: Verified
+
+    User->>API: 3. POST /auth/register
+    API->>Service: Hash password + Create client
+    Service->>DB: Insert client record
+    DB-->>Service: clientId
+    Service-->>API: Client created
+    API-->>User: clientId returned
+
+    User->>API: 4. POST /auth/login {phoneNumber, password, deviceId}
+    API->>Service: Authenticate
+    Service->>DB: Check existing sessions
+    Note over DB: Invalidate old session (single-device)
+    Service->>DB: Create new deviceSession
+    DB-->>Service: sessionId
+    Service->>Service: Generate JWT token
+    Service-->>API: token + sessionId + clientId
+    API-->>User: Login success
+```
+
+### Billing & Invoice Flow
+
+```mermaid
+graph TD
+    A[Customer Visit] --> B[Client enters customer phone]
+    B --> C[Get/Create customer record]
+    C --> D[Create cart]
+    D --> E[Add items to cart]
+    E --> F[Client reviews items & total]
+    F --> G{Payment Amount Check}
+
+    G -->|Paid == Total| H[Full Payment]
+    G -->|Paid &lt; Total| I[Partial Payment]
+
+    H --> J["POST /invoices/generate"]
+    J --> K["✅ Invoice Created<br/>isFinalized: true"]
+    K --> L["Create purchaseHistory<br/>mapped to customer phone"]
+    L --> M["Invoice immutable"]
+
+    I --> N["POST /invoices/incomplete-sale"]
+    N --> O["📝 Incomplete Sale Record<br/>pending amount tracked"]
+    O --> P{Customer returns<br/>with payment?}
+
+    P -->|Yes| Q["POST /invoices/pay<br/>additional payment"]
+    Q --> R{Is balance<br/>complete?}
+    R -->|Yes| S["Finalize invoice<br/>isFinalized: true"]
+    S --> L
+    R -->|No| O
+
+    M --> T["GET /purchase-history"]
+    T --> U["View customer<br/>purchase history<br/>by phone"]
+```
 
 ## API Reference (detailed)
 
