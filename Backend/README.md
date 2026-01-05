@@ -1,4 +1,4 @@
-# Viveka Backend
+﻿# Viveka Backend
 
 Professional documentation for the Viveka backend (Express + MongoDB).
 
@@ -16,7 +16,7 @@ This README provides a concise architecture overview, API reference, run instruc
 
 ## System Flow Diagram
 
-### Complete User Journey: OTP → Registration → Billing
+### Complete User Journey: OTP â†’ Registration â†’ Billing
 
 ```mermaid
 graph TD
@@ -125,20 +125,20 @@ graph TD
 
 ```mermaid
 graph LR
-    subgraph CLIENT["📱 Client Layer"]
+    subgraph CLIENT["ðŸ“± Client Layer"]
         FA["Frontend App<br/>Mobile Device"]
     end
 
-    subgraph API["🌐 API Layer"]
+    subgraph API["ðŸŒ API Layer"]
         AR["Routes<br/>authRoutes<br/>businessRoutes<br/>otpRoutes"]
         AC["Controllers<br/>authController<br/>businessController<br/>otpController"]
     end
 
-    subgraph SERVICE["⚙️ Service Layer"]
+    subgraph SERVICE["âš™ï¸ Service Layer"]
         AS["Services<br/>authService<br/>businessService<br/>otpService"]
     end
 
-    subgraph DATA["💾 Data Layer"]
+    subgraph DATA["ðŸ’¾ Data Layer"]
         DB["MongoDB<br/>Collections:<br/>clients, devices,<br/>otpSessions, items,<br/>itemGroups, customers,<br/>carts, invoices,<br/>purchaseHistories"]
     end
 
@@ -208,12 +208,12 @@ graph TD
     G -->|Paid &lt; Total| I[Partial Payment]
 
     H --> J["POST /invoices/generate"]
-    J --> K["✅ Invoice Created<br/>isFinalized: true"]
+    J --> K["âœ… Invoice Created<br/>isFinalized: true"]
     K --> L["Create purchaseHistory<br/>mapped to customer phone"]
     L --> M["Invoice immutable"]
 
     I --> N["POST /invoices/incomplete-sale"]
-    N --> O["📝 Incomplete Sale Record<br/>pending amount tracked"]
+    N --> O["ðŸ“ Incomplete Sale Record<br/>pending amount tracked"]
     O --> P{Customer returns<br/>with payment?}
 
     P -->|Yes| Q["POST /invoices/pay<br/>additional payment"]
@@ -470,7 +470,7 @@ Notes: endpoints use JSON. Where applicable include `Authorization: Bearer <toke
   - Success (200): `{ "success": true, "message": "Item removed from cart" }`
 
 - POST /business/carts/clear
-  - Body: `{ "cartId":"<cartId>" }` — clears cart items.
+  - Body: `{ "cartId":"<cartId>" }` â€” clears cart items.
   - Success (200): `{ "success": true, "message": "Cart cleared" }`
 
 ### Invoices & Payments
@@ -564,37 +564,6 @@ Invoices must be generated only when the bill is paid in full. For partial or in
   - Query param: `?customerId=<customerId>`
 
 For full request/response examples, see `documentation/POSTMAN_GUIDE.md` or the Postman collection in `documentation/`.
-participant U as User (Mobile)
-participant FE as Frontend
-participant API as Viveka API
-participant SVC as Service Layer
-participant DB as MongoDB
-
-      FE->>API: POST /otp/send { "phoneNumber": "989xxxxxxx" }
-      API->>SVC: generate and store OTP (mock)
-      SVC->>DB: create `otpSessions` entry
-
-      FE->>API: POST /otp/verify { "phoneNumber":"989...","otp":"1234" }
-      API->>SVC: verify OTP → success
-
-      FE->>API: POST /auth/register {"phoneNumber","password","ownerName","businessName"}
-      API->>SVC: create client record
-      SVC->>DB: insert `clients`
-
-      FE->>API: POST /auth/login {"phoneNumber","password","deviceId"}
-      API->>SVC: authenticate → create deviceSession + return JWT
-
-      FE->>API: POST /business/cart {"clientId","customerPhone"}
-      API->>SVC: create cart
-
-      FE->>API: POST /business/cart/add {"cartId","itemId","quantity","unitPrice"}
-      API->>SVC: add item to cart
-
-      FE->>API: POST /business/invoice {"clientId","cartId","totalAmount","paidAmount"}
-      API->>SVC: validate payment → create invoice & purchaseHistory
-      SVC->>DB: insert `invoices`, `purchaseHistories`
-
-````
 
 ## Quick start (developer)
 
@@ -603,7 +572,7 @@ participant DB as MongoDB
 ```bash
 cd Backend
 npm install
-````
+```
 
 2. Create `.env` in `Backend` (example):
 
@@ -638,22 +607,22 @@ npm test
 
 ## Environment variables
 
-- `MONGO_URL` — MongoDB connection string
-- `PORT` — HTTP port (default 5000)
-- `JWT_SECRET` — secret for signing JWT tokens
-- `NODE_ENV` — environment (development/production)
+- `MONGO_URL` â€” MongoDB connection string
+- `PORT` â€” HTTP port (default 5000)
+- `JWT_SECRET` â€” secret for signing JWT tokens
+- `NODE_ENV` â€” environment (development/production)
 
 ## Project layout
 
 Key folders and files:
 
-- `src/api/controllers` — request handlers
-- `src/api/routes` — route definitions
-- `src/services` — business logic (OTP, auth, business)
-- `src/models/Model.js` — Mongoose schemas
-- `src/config/db.js` — DB connection
-- `tests/test.js` — automated A→Z API test suite (reports)
-- `documentation/` — project docs and Postman guides
+- `src/api/controllers` â€” request handlers
+- `src/api/routes` â€” route definitions
+- `src/services` â€” business logic (OTP, auth, business)
+- `src/models/Model.js` â€” Mongoose schemas
+- `src/config/db.js` â€” DB connection
+- `tests/test.js` â€” automated Aâ†’Z API test suite (reports)
+- `documentation/` â€” project docs and Postman guides
 
 ## API Reference (summary)
 
@@ -661,48 +630,48 @@ Base URL: `http://localhost:5000/api`
 
 Authentication: Most business endpoints require a valid `clientId` and/or a JWT `Authorization: Bearer <token>` depending on the endpoint. The suite primarily uses `clientId` for scoping.
 
-Endpoints (grouped) — concise reference with method, path, auth and purpose.
+Endpoints (grouped) â€” concise reference with method, path, auth and purpose.
 
 - OTP
 
-  - POST `/otp/send` — body: `{ phoneNumber }` — send mock OTP (no SMS)
-  - POST `/otp/verify` — body: `{ phoneNumber, otp }` — verify otp
-  - POST `/otp/clear` — body: `{ phoneNumber }` — clear OTP session
+  - POST `/otp/send` â€” body: `{ phoneNumber }` â€” send mock OTP (no SMS)
+  - POST `/otp/verify` â€” body: `{ phoneNumber, otp }` â€” verify otp
+  - POST `/otp/clear` â€” body: `{ phoneNumber }` â€” clear OTP session
 
 - Auth
 
-  - POST `/auth/register` — body: `{ phoneNumber, password, ownerName, businessName }` — create client
-  - POST `/auth/login` — body: `{ phoneNumber, password, deviceId, deviceName }` — authenticate and create device session
-  - POST `/auth/logout` — body: `{ clientId, deviceSessionId }` — logout device
-  - GET `/auth/client/:clientId` — path param: `clientId` — get client details
+  - POST `/auth/register` â€” body: `{ phoneNumber, password, ownerName, businessName }` â€” create client
+  - POST `/auth/login` â€” body: `{ phoneNumber, password, deviceId, deviceName }` â€” authenticate and create device session
+  - POST `/auth/logout` â€” body: `{ clientId, deviceSessionId }` â€” logout device
+  - GET `/auth/client/:clientId` â€” path param: `clientId` â€” get client details
 
 - Business (Item groups, Items, Customers, Cart, Invoice)
 
-  - POST `/business/item-groups` — create item group
-  - GET `/business/item-groups/:clientId` — list groups
-  - PUT `/business/item-groups/:clientId/:groupId` — update group
-  - DELETE `/business/item-groups/:clientId/:groupId` — delete group
+  - POST `/business/item-groups` â€” create item group
+  - GET `/business/item-groups/:clientId` â€” list groups
+  - PUT `/business/item-groups/:clientId/:groupId` â€” update group
+  - DELETE `/business/item-groups/:clientId/:groupId` â€” delete group
 
-  - POST `/business/items` — create item (clientId, name, price, unit, groupId opt)
-  - GET `/business/items/:clientId` — list items (query: groupId optional)
-  - PUT `/business/items/:clientId/:itemId` — update item
-  - DELETE `/business/items/:clientId/:itemId` — delete item
+  - POST `/business/items` â€” create item (clientId, name, price, unit, groupId opt)
+  - GET `/business/items/:clientId` â€” list items (query: groupId optional)
+  - PUT `/business/items/:clientId/:itemId` â€” update item
+  - DELETE `/business/items/:clientId/:itemId` â€” delete item
 
-  - POST `/business/customers` — create/get customer by phone
-  - GET `/business/customers/:clientId` — list customers
+  - POST `/business/customers` â€” create/get customer by phone
+  - GET `/business/customers/:clientId` â€” list customers
 
-  - POST `/business/carts` — create cart for a customer
-  - POST `/business/carts/add-item` — add item to cart
-  - GET `/business/carts/:cartId` — get cart
-  - POST `/business/carts/remove-item` — remove item from cart
-  - POST `/business/carts/clear` — clear cart
+  - POST `/business/carts` â€” create cart for a customer
+  - POST `/business/carts/add-item` â€” add item to cart
+  - GET `/business/carts/:cartId` â€” get cart
+  - POST `/business/carts/remove-item` â€” remove item from cart
+  - POST `/business/carts/clear` â€” clear cart
 
-  - POST `/business/invoices/generate` — generate invoice (must meet paid==total rule)
-  - POST `/business/invoices/incomplete-sale` — record incomplete sale (paid < total)
-  - POST `/business/invoices/pay` — record additional payment against invoice
-  - GET `/business/invoices/:invoiceId/payments` — get payments for invoice
-  - GET `/business/invoices/:clientId` — list invoices
-  - GET `/business/purchase-history/:clientId` — list purchase history (query customerId opt)
+  - POST `/business/invoices/generate` â€” generate invoice (must meet paid==total rule)
+  - POST `/business/invoices/incomplete-sale` â€” record incomplete sale (paid < total)
+  - POST `/business/invoices/pay` â€” record additional payment against invoice
+  - GET `/business/invoices/:invoiceId/payments` â€” get payments for invoice
+  - GET `/business/invoices/:clientId` â€” list invoices
+  - GET `/business/purchase-history/:clientId` â€” list purchase history (query customerId opt)
 
 For full request/response examples, see `documentation/POSTMAN_GUIDE.md` or the Postman collection in `documentation/`.
 
@@ -718,16 +687,16 @@ The API returns JSON with at least `{ success: boolean, message: string, data?: 
 
 Common HTTP codes used:
 
-- `200` OK — successful read/write operations
-- `201` Created — resource created
-- `400` Bad Request — validation failed
-- `401` Unauthorized — auth failure
-- `404` Not Found — resource missing
-- `500` Server Error — unexpected errors
+- `200` OK â€” successful read/write operations
+- `201` Created â€” resource created
+- `400` Bad Request â€” validation failed
+- `401` Unauthorized â€” auth failure
+- `404` Not Found â€” resource missing
+- `500` Server Error â€” unexpected errors
 
 ## Testing & Reports
 
-- `tests/test.js` runs a full A→Z suite that clears test collections, executes flows (OTP → auth → items → cart → invoice) and generates:
+- `tests/test.js` runs a full Aâ†’Z suite that clears test collections, executes flows (OTP â†’ auth â†’ items â†’ cart â†’ invoice) and generates:
   - `tests/test-report.json` (machine readable)
   - `tests/test-report.html` (visual)
 - The test harness uses the same `node_modules` from the project root; ensure the server is running before executing tests.
@@ -772,4 +741,4 @@ curl -X POST http://localhost:5000/api/business/item-groups \
 
 ## License
 
-MIT — see `package.json` for details.
+MIT â€” see `package.json` for details.
