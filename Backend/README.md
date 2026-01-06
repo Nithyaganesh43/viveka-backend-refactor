@@ -470,7 +470,7 @@ Notes: endpoints use JSON. Where applicable include `Authorization: Bearer <toke
   - Success (200): `{ "success": true, "message": "Item removed from cart" }`
 
 - POST /business/carts/clear
-  - Body: `{ "cartId":"<cartId>" }`  clears cart items.
+  - Body: `{ "cartId":"<cartId>" }` clears cart items.
   - Success (200): `{ "success": true, "message": "Cart cleared" }`
 
 ### Invoices & Payments
@@ -607,22 +607,22 @@ npm test
 
 ## Environment variables
 
-- `MONGO_URL`  MongoDB connection string
-- `PORT`  HTTP port (default 5000)
-- `JWT_SECRET`  secret for signing JWT tokens
-- `NODE_ENV`  environment (development/production)
+- `MONGO_URL` MongoDB connection string
+- `PORT` HTTP port (default 5000)
+- `JWT_SECRET` secret for signing JWT tokens
+- `NODE_ENV` environment (development/production)
 
 ## Project layout
 
 Key folders and files:
 
-- `src/api/controllers`  request handlers
-- `src/api/routes`  route definitions
-- `src/services`  business logic (OTP, auth, business)
-- `src/models/Model.js`  Mongoose schemas
-- `src/config/db.js`  DB connection
-- `tests/test.js`  automated Aâ†’Z API test suite (reports)
-- `documentation/`  project docs and Postman guides
+- `src/api/controllers` request handlers
+- `src/api/routes` route definitions
+- `src/services` business logic (OTP, auth, business)
+- `src/models/Model.js` Mongoose schemas
+- `src/config/db.js` DB connection
+- `tests/test.js` automated Aâ†’Z API test suite (reports)
+- `documentation/` project docs and Postman guides
 
 ## API Reference (summary)
 
@@ -630,48 +630,48 @@ Base URL: `http://localhost:5000/api`
 
 Authentication: Most business endpoints require a valid `clientId` and/or a JWT `Authorization: Bearer <token>` depending on the endpoint. The suite primarily uses `clientId` for scoping.
 
-Endpoints (grouped)  concise reference with method, path, auth and purpose.
+Endpoints (grouped) concise reference with method, path, auth and purpose.
 
 - OTP
 
-  - POST `/otp/send`  body: `{ phoneNumber }`  send mock OTP (no SMS)
-  - POST `/otp/verify`  body: `{ phoneNumber, otp }`  verify otp
-  - POST `/otp/clear`  body: `{ phoneNumber }`  clear OTP session
+  - POST `/otp/send` body: `{ phoneNumber }` send mock OTP (no SMS)
+  - POST `/otp/verify` body: `{ phoneNumber, otp }` verify otp
+  - POST `/otp/clear` body: `{ phoneNumber }` clear OTP session
 
 - Auth
 
-  - POST `/auth/register`  body: `{ phoneNumber, password, ownerName, businessName }`  create client
-  - POST `/auth/login`  body: `{ phoneNumber, password, deviceId, deviceName }`  authenticate and create device session
-  - POST `/auth/logout`  body: `{ clientId, deviceSessionId }`  logout device
-  - GET `/auth/client/:clientId`  path param: `clientId`  get client details
+  - POST `/auth/register` body: `{ phoneNumber, password, ownerName, businessName }` create client
+  - POST `/auth/login` body: `{ phoneNumber, password, deviceId, deviceName }` authenticate and create device session
+  - POST `/auth/logout` body: `{ clientId, deviceSessionId }` logout device
+  - GET `/auth/client/:clientId` path param: `clientId` get client details
 
 - Business (Item groups, Items, Customers, Cart, Invoice)
 
-  - POST `/business/item-groups`  create item group
-  - GET `/business/item-groups/:clientId`  list groups
-  - PUT `/business/item-groups/:clientId/:groupId`  update group
-  - DELETE `/business/item-groups/:clientId/:groupId`  delete group
+  - POST `/business/item-groups` create item group
+  - GET `/business/item-groups/:clientId` list groups
+  - PUT `/business/item-groups/:clientId/:groupId` update group
+  - DELETE `/business/item-groups/:clientId/:groupId` delete group
 
-  - POST `/business/items`  create item (clientId, name, price, unit, groupId opt)
-  - GET `/business/items/:clientId`  list items (query: groupId optional)
-  - PUT `/business/items/:clientId/:itemId`  update item
-  - DELETE `/business/items/:clientId/:itemId`  delete item
+  - POST `/business/items` create item (clientId, name, price, unit, groupId opt)
+  - GET `/business/items/:clientId` list items (query: groupId optional)
+  - PUT `/business/items/:clientId/:itemId` update item
+  - DELETE `/business/items/:clientId/:itemId` delete item
 
-  - POST `/business/customers`  create/get customer by phone
-  - GET `/business/customers/:clientId`  list customers
+  - POST `/business/customers` create/get customer by phone
+  - GET `/business/customers/:clientId` list customers
 
-  - POST `/business/carts`  create cart for a customer
-  - POST `/business/carts/add-item`  add item to cart
-  - GET `/business/carts/:cartId`  get cart
-  - POST `/business/carts/remove-item`  remove item from cart
-  - POST `/business/carts/clear`  clear cart
+  - POST `/business/carts` create cart for a customer
+  - POST `/business/carts/add-item` add item to cart
+  - GET `/business/carts/:cartId` get cart
+  - POST `/business/carts/remove-item` remove item from cart
+  - POST `/business/carts/clear` clear cart
 
-  - POST `/business/invoices/generate`  generate invoice (must meet paid==total rule)
-  - POST `/business/invoices/incomplete-sale`  record incomplete sale (paid < total)
-  - POST `/business/invoices/pay`  record additional payment against invoice
-  - GET `/business/invoices/:invoiceId/payments`  get payments for invoice
-  - GET `/business/invoices/:clientId`  list invoices
-  - GET `/business/purchase-history/:clientId`  list purchase history (query customerId opt)
+  - POST `/business/invoices/generate` generate invoice (must meet paid==total rule)
+  - POST `/business/invoices/incomplete-sale` record incomplete sale (paid < total)
+  - POST `/business/invoices/pay` record additional payment against invoice
+  - GET `/business/invoices/:invoiceId/payments` get payments for invoice
+  - GET `/business/invoices/:clientId` list invoices
+  - GET `/business/purchase-history/:clientId` list purchase history (query customerId opt)
 
 For full request/response examples, see `documentation/POSTMAN_GUIDE.md` or the Postman collection in `documentation/`.
 
@@ -687,12 +687,12 @@ The API returns JSON with at least `{ success: boolean, message: string, data?: 
 
 Common HTTP codes used:
 
-- `200` OK  successful read/write operations
-- `201` Created  resource created
-- `400` Bad Request  validation failed
-- `401` Unauthorized  auth failure
-- `404` Not Found  resource missing
-- `500` Server Error  unexpected errors
+- `200` OK successful read/write operations
+- `201` Created resource created
+- `400` Bad Request validation failed
+- `401` Unauthorized auth failure
+- `404` Not Found resource missing
+- `500` Server Error unexpected errors
 
 ## Testing & Reports
 
@@ -741,4 +741,96 @@ curl -X POST http://localhost:5000/api/business/item-groups \
 
 ## License
 
-MIT  see `package.json` for details.
+MIT see `package.json` for details.
+
+## Schema Design
+
+This section documents the Mongoose schemas used by the backend (see `src/models/Model.js`). It summarizes each collection's purpose, key fields, indexes, relationships and important validation/TTL behavior.
+
+- **Client** (collection: `clients`)
+
+  - Purpose: business account / owner for a shop.
+  - Key fields: `phoneNumber` (unique, indexed, 10+ digits), `passwordHash`, `ownerName`, `businessName`, `isActive`, `createdAt`, `lastLoginAt`.
+  - Indexes: unique on `phoneNumber` and usual timestamps.
+  - Notes: `passwordHash` stores bcrypt hashes; `phoneNumber` is primary login identifier.
+
+- **OtpSession** (collection: `otpsessions`)
+
+  - Purpose: temporary OTP storage during registration/verification.
+  - Key fields: `phoneNumber` (indexed), `otpHash`, `expiresAt`, `isVerified`, `attempts`, `createdAt`.
+  - TTL: `expiresAt` uses an expireAfterSeconds setting (10 minutes) to auto-delete expired sessions.
+  - Notes: `attempts` is capped (max 5) to prevent brute-force.
+
+- **DeviceSession** (collection: `devicesessions`)
+
+  - Purpose: record active device sessions for a client (single active device policy enforced by app logic).
+  - Key fields: `clientId` (ref `Client`, indexed), `deviceId`, `deviceName`, `isActive`, `lastSeenAt`, `createdAt`.
+  - Indexes: compound unique `{ clientId, deviceId }` to avoid duplicate device sessions.
+
+- **Customer** (collection: `customers`)
+
+  - Purpose: end-user/customer records scoped per client (phone-based identity).
+  - Key fields: `clientId` (ref `Client`, indexed), `phoneNumber`, `firstSeenAt`, `lastPurchaseAt`.
+  - Indexes: unique compound `{ clientId, phoneNumber }` to ensure one customer per phone per client.
+
+- **ItemGroup** (collection: `itemgroups`)
+
+  - Purpose: logical grouping of items for a client.
+  - Key fields: `clientId` (ref `Client`), `name`, `description`, `createdAt`, `updatedAt`.
+
+- **Item** (collection: `items`)
+
+  - Purpose: product catalog entries for a client.
+  - Key fields: `clientId` (ref `Client`, indexed), `groupId` (ref `ItemGroup`), `name`, `price`, `unit` (enum), `description`, `isActive`, `createdAt`, `updatedAt`.
+  - Validation: `price` >= 0, name min length; `unit` limited to `['nos','kg','litre','meter','pcs']`.
+
+- **Cart** (collection: `carts`)
+
+  - Purpose: temporary shopping cart prior to invoice generation.
+  - Key fields: `clientId`, `customerId` (optional), `customerPhone`, `totalAmount`, `itemCount`, `isFinalized`, `createdAt`, `expiresAt`.
+  - TTL: `expiresAt` with expireAfterSeconds set to 24 hours for auto-deletion of stale carts.
+
+- **CartItem** (collection: `cartitems`)
+
+  - Purpose: items placed in a cart (line items snapshots).
+  - Key fields: `cartId` (ref `Cart`), `itemId` (ref `Item`), `itemNameSnapshot`, `unitPriceSnapshot`, `quantity`, `lineTotal`, `createdAt`.
+  - Notes: snapshots are used so changes to `Item` do not affect historic cart entries.
+
+- **IncompleteSale** (collection: `incompletesales`)
+
+  - Purpose: record of partially paid transactions (no invoice generated yet).
+  - Key fields: `clientId`, `customerPhone`, `totalAmount`, `paidAmount`, `items` (embedded array of line objects), `notes`, `createdAt`.
+  - Notes: used when paid < total; allows later reconciliation or conversion to a finalized invoice when fully paid.
+
+- **Invoice** (collection: `invoices`)
+
+  - Purpose: finalized, immutable billing records created when `paidAmount == totalAmount`.
+  - Key fields: `clientId`, `customerId` (optional), `invoiceNumber`, `totalAmount`, `paidAmount`, `isFinalized`, `notes`, `generatedAt`.
+  - Indexes: unique compound `{ clientId, invoiceNumber }` to ensure invoice numbering uniqueness per client.
+  - Notes: invoices are considered immutable after generation; `isFinalized` set to true when generated.
+
+- **InvoiceItem** (collection: `invoiceitems`)
+
+  - Purpose: line items for an invoice (stored separately for normalization and querying).
+  - Key fields: `invoiceId` (ref `Invoice`), `itemName`, `unitPrice`, `quantity`, `lineTotal`.
+
+- **PurchaseHistory** (collection: `purchasehistories`)
+
+  - Purpose: quick-access purchase records mapping customer purchases to invoices.
+  - Key fields: `clientId`, `customerId`, `invoiceId`, `totalAmount`, `purchasedAt`.
+  - Notes: optimized for lookup by `clientId` and `customerId`.
+
+- **Payment** (collection: `payments`)
+  - Purpose: record one or more payments applied to invoices (supports partial payments or multiple payment methods).
+  - Key fields: `clientId`, `invoiceId`, `amount`, `method` (enum: `cash|card|upi|bank|other`), `note`, `paidAt`.
+  - Notes: used to update `Invoice.paidAmount` and to determine when an invoice transitions to `isFinalized=true`.
+
+Design notes & invariants
+
+- Clients scope most business entities via `clientId` to keep multi-tenant separation simple and fast to query.
+- Phone numbers are treated as primary identifiers for `Client`, `OtpSession` and `Customer` with validation on format.
+- TTLs: `OtpSession.expiresAt` (10 minutes) and `Cart.expiresAt` (24 hours) are configured to let MongoDB auto-remove old docs.
+- Single-device policy: `DeviceSession` uniqueness plus login logic enforces one active device per client.
+- Immutable snapshots: `CartItem` and `InvoiceItem` store snapshots (name, price) to preserve historical accuracy even if catalog items change.
+
+If you want this section expanded (ER diagram, example queries, or migration notes), tell me which format you prefer.
