@@ -47,18 +47,7 @@ Viveka Backend is a comprehensive **B2B billing and invoicing system** designed 
 ✅ **Idempotency Support** - Safe retry mechanism for offline sync  
 ✅ **Production-Ready** - Deployed on Render with MongoDB Atlas
 
-### Technology Stack
-
-| Layer      | Technology   | Purpose                        |
-| ---------- | ------------ | ------------------------------ |
-| Runtime    | Node.js v18+ | JavaScript runtime             |
-| Framework  | Express.js   | Web framework and routing      |
-| Database   | MongoDB      | NoSQL document store           |
-| ODM        | Mongoose     | Schema modeling and validation |
-| Auth       | JWT          | Token-based authentication     |
-| SMS        | 2factor.in   | OTP delivery service           |
-| Deployment | Render       | Cloud hosting platform         |
-
+ 
 ---
 
 ## 🏗️ System Architecture
