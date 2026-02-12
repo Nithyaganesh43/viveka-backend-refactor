@@ -15,10 +15,6 @@ const clientSchema = new Schema(
       trim: true,
       match: [/^\d{10,}$/, 'Please provide a valid phone number'],
     },
-    passwordHash: {
-      type: String,
-      required: [true, 'Password hash is required'],
-    },
     ownerName: {
       type: String,
       required: [true, 'Owner name is required'],
@@ -30,6 +26,52 @@ const clientSchema = new Schema(
       required: [true, 'Business name is required'],
       trim: true,
       minlength: [2, 'Business name must be at least 2 characters'],
+    },
+    shopName: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    location: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    city: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    state: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    gstin: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    profileUrl: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    clientSettings: {
+      customerFields: {
+        address: {
+          type: Boolean,
+          default: false,
+        },
+        gstNo: {
+          type: Boolean,
+          default: false,
+        },
+        emailId: {
+          type: Boolean,
+          default: false,
+        },
+      },
     },
     isActive: {
       type: Boolean,
@@ -46,7 +88,7 @@ const clientSchema = new Schema(
       default: null,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // ============================================================================
@@ -60,6 +102,12 @@ const otpSessionSchema = new Schema(
       index: true,
       trim: true,
     },
+    purpose: {
+      type: String,
+      enum: ['generic', 'register', 'login'],
+      default: 'generic',
+      index: true,
+    },
     otpHash: {
       type: String,
       required: [true, 'OTP hash is required'],
@@ -67,7 +115,7 @@ const otpSessionSchema = new Schema(
     expiresAt: {
       type: Date,
       required: [true, 'Expiration time is required'],
-      index: { expireAfterSeconds: 600 }, // Auto-delete after 10 minutes
+      index: { expireAfterSeconds: 0 }, // TTL based on expiresAt value
     },
     isVerified: {
       type: Boolean,
@@ -84,8 +132,10 @@ const otpSessionSchema = new Schema(
       immutable: true,
     },
   },
-  { timestamps: false }
+  { timestamps: false },
 );
+
+otpSessionSchema.index({ phoneNumber: 1, purpose: 1 });
 
 // ============================================================================
 // DEVICE SESSION (One Active per Client)
@@ -103,11 +153,6 @@ const deviceSessionSchema = new Schema(
       required: [true, 'Device ID is required'],
       trim: true,
     },
-    deviceName: {
-      type: String,
-      trim: true,
-      default: 'Unknown Device',
-    },
     isActive: {
       type: Boolean,
       default: true,
@@ -123,15 +168,15 @@ const deviceSessionSchema = new Schema(
       immutable: true,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 deviceSessionSchema.index({ clientId: 1, deviceId: 1 }, { unique: true });
 
 // ============================================================================
-// CUSTOMER (End User – Phone Based)
+// CLIENT clientCustomer (Single clientCustomer model)
 // ============================================================================
-const customerSchema = new Schema(
+const clientCustomerSchema = new Schema(
   {
     clientId: {
       type: Schema.Types.ObjectId,
@@ -145,6 +190,30 @@ const customerSchema = new Schema(
       trim: true,
       match: [/^\d{10,}$/, 'Please provide a valid phone number'],
     },
+    name: {
+      type: String,
+      trim: true,
+      default: '',
+      validate: {
+        validator: (v) => !v || v.length >= 2,
+        message: 'Name must be at least 2 characters when provided',
+      },
+    },
+    address: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    emailId: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    gstNo: {
+      type: String,
+      trim: true,
+      default: '',
+    },
     firstSeenAt: {
       type: Date,
       default: Date.now,
@@ -155,10 +224,10 @@ const customerSchema = new Schema(
       default: null,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
-customerSchema.index({ clientId: 1, phoneNumber: 1 }, { unique: true });
+clientCustomerSchema.index({ clientId: 1, phoneNumber: 1 }, { unique: true });
 
 // ============================================================================
 // ITEM GROUP
@@ -192,7 +261,7 @@ const itemGroupSchema = new Schema(
       default: Date.now,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // ============================================================================
@@ -222,6 +291,24 @@ const itemSchema = new Schema(
       required: [true, 'Price is required'],
       min: [0, 'Price cannot be negative'],
     },
+    // Supplier mapping - item can be sourced from multiple dealers
+    dealerIds: {
+      type: [{ type: Schema.Types.ObjectId, ref: 'Dealer' }],
+      default: [],
+      index: true,
+    },
+    stock: {
+      type: Number,
+      required: [true, 'Stock is required'],
+      min: [0, 'Stock cannot be negative'],
+      default: 0,
+    },
+    // Low stock threshold for alerts/recommendations
+    lowStockQuantity: {
+      type: Number,
+      min: [0, 'Low stock quantity cannot be negative'],
+      default: 5,
+    },
     unit: {
       type: String,
       default: 'nos',
@@ -247,7 +334,7 @@ const itemSchema = new Schema(
       default: Date.now,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // ============================================================================
@@ -261,12 +348,12 @@ const cartSchema = new Schema(
       required: [true, 'Client ID is required'],
       index: true,
     },
-    customerId: {
+    clientCustomerId: {
       type: Schema.Types.ObjectId,
-      ref: 'Customer',
+      ref: 'clientCustomer',
       default: null,
     },
-    customerPhone: {
+    clientCustomerPhone: {
       type: String,
       trim: true,
       default: null,
@@ -296,7 +383,7 @@ const cartSchema = new Schema(
       index: { expireAfterSeconds: 86400 }, // Auto-delete after 24 hours
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // ============================================================================
@@ -340,57 +427,7 @@ const cartItemSchema = new Schema(
       immutable: true,
     },
   },
-  { timestamps: false }
-);
-
-// ============================================================================
-// INCOMPLETE SALE (Paid Amount < Total Amount - No Invoice Generated)
-// ============================================================================
-const incompleteSaleSchema = new Schema(
-  {
-    clientId: {
-      type: Schema.Types.ObjectId,
-      ref: 'Client',
-      required: [true, 'Client ID is required'],
-      index: true,
-    },
-    customerPhone: {
-      type: String,
-      required: [true, 'Customer phone is required'],
-      trim: true,
-      match: [/^\d{10,}$/, 'Please provide a valid phone number'],
-    },
-    totalAmount: {
-      type: Number,
-      required: [true, 'Total amount is required'],
-      min: [0, 'Amount cannot be negative'],
-    },
-    paidAmount: {
-      type: Number,
-      required: [true, 'Paid amount is required'],
-      min: [0, 'Amount cannot be negative'],
-    },
-    items: [
-      {
-        itemName: String,
-        unitPrice: Number,
-        quantity: Number,
-        lineTotal: Number,
-      },
-    ],
-    notes: {
-      type: String,
-      trim: true,
-      default: '',
-    },
-    createdAt: {
-      type: Date,
-      default: Date.now,
-      immutable: true,
-      index: true,
-    },
-  },
-  { timestamps: false }
+  { timestamps: false },
 );
 
 // ============================================================================
@@ -404,15 +441,53 @@ const invoiceSchema = new Schema(
       required: [true, 'Client ID is required'],
       index: true,
     },
-    customerId: {
+    clientCustomerId: {
       type: Schema.Types.ObjectId,
-      ref: 'Customer',
+      ref: 'clientCustomer',
       default: null,
+    },
+    clientCustomerName: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    clientCustomerPhone: {
+      type: String,
+      trim: true,
+      default: '',
     },
     invoiceNumber: {
       type: String,
       required: [true, 'Invoice number is required'],
       trim: true,
+    },
+    invoiceDate: {
+      type: String,
+      default: () => new Date().toISOString().split('T')[0],
+    },
+    dueDate: {
+      type: String,
+      default: () => {
+        const date = new Date();
+        date.setDate(date.getDate() + 30);
+        return date.toISOString().split('T')[0];
+      },
+    },
+    subtotal: {
+      type: Number,
+      required: [true, 'Subtotal is required'],
+      min: [0, 'Subtotal cannot be negative'],
+      default: 0,
+    },
+    totalTax: {
+      type: Number,
+      min: [0, 'Tax cannot be negative'],
+      default: 0,
+    },
+    totalDiscount: {
+      type: Number,
+      min: [0, 'Discount cannot be negative'],
+      default: 0,
     },
     totalAmount: {
       type: Number,
@@ -424,6 +499,35 @@ const invoiceSchema = new Schema(
       required: [true, 'Paid amount is required'],
       min: [0, 'Amount cannot be negative'],
     },
+    products: [
+      {
+        productId: {
+          type: Schema.Types.ObjectId,
+          ref: 'Item',
+          required: true,
+        },
+        itemName: {
+          type: String,
+          required: [true, 'Item name is required'],
+          trim: true,
+        },
+        itemGroup: {
+          type: String,
+          trim: true,
+          default: '',
+        },
+        quantity: {
+          type: Number,
+          required: true,
+          min: [1, 'Quantity must be at least 1'],
+        },
+        costPerUnit: {
+          type: Number,
+          required: true,
+          min: [0, 'Cost per unit cannot be negative'],
+        },
+      },
+    ],
     isFinalized: {
       type: Boolean,
       default: false,
@@ -439,45 +543,10 @@ const invoiceSchema = new Schema(
       immutable: true,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 invoiceSchema.index({ clientId: 1, invoiceNumber: 1 }, { unique: true });
-
-// ============================================================================
-// INVOICE ITEM
-// ============================================================================
-const invoiceItemSchema = new Schema(
-  {
-    invoiceId: {
-      type: Schema.Types.ObjectId,
-      ref: 'Invoice',
-      required: [true, 'Invoice ID is required'],
-      index: true,
-    },
-    itemName: {
-      type: String,
-      required: [true, 'Item name is required'],
-      trim: true,
-    },
-    unitPrice: {
-      type: Number,
-      required: [true, 'Unit price is required'],
-      min: [0, 'Price cannot be negative'],
-    },
-    quantity: {
-      type: Number,
-      required: [true, 'Quantity is required'],
-      min: [1, 'Quantity must be at least 1'],
-    },
-    lineTotal: {
-      type: Number,
-      required: [true, 'Line total is required'],
-      min: [0, 'Line total cannot be negative'],
-    },
-  },
-  { timestamps: false }
-);
 
 // ============================================================================
 // PURCHASE HISTORY
@@ -490,11 +559,16 @@ const purchaseHistorySchema = new Schema(
       required: [true, 'Client ID is required'],
       index: true,
     },
-    customerId: {
+    clientCustomerId: {
       type: Schema.Types.ObjectId,
-      ref: 'Customer',
-      required: [true, 'Customer ID is required'],
+      ref: 'clientCustomer',
+      required: [true, 'Client clientCustomer ID is required'],
       index: true,
+    },
+    clientCustomerPhone: {
+      type: String,
+      trim: true,
+      default: '',
     },
     invoiceId: {
       type: Schema.Types.ObjectId,
@@ -513,8 +587,228 @@ const purchaseHistorySchema = new Schema(
       index: true,
     },
   },
-  { timestamps: false }
+  { timestamps: false },
 );
+
+// ============================================================================
+// DEALER (Internal supplier)
+// ============================================================================
+const dealerSchema = new Schema(
+  {
+    clientId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Client',
+      required: [true, 'Client ID is required'],
+      index: true,
+    },
+    name: {
+      type: String,
+      required: [true, 'Dealer name is required'],
+      trim: true,
+      minlength: [2, 'Dealer name must be at least 2 characters'],
+    },
+    contactPerson: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    phoneNumber: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    email: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    address: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    logoUrl: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
+      index: true,
+    },
+  },
+  { timestamps: true },
+);
+
+dealerSchema.index({ clientId: 1, name: 1 });
+
+// ============================================================================
+// DEALER ORDER
+// ============================================================================
+const dealerOrderSchema = new Schema(
+  {
+    clientId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Client',
+      required: [true, 'Client ID is required'],
+      index: true,
+    },
+    dealerId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Dealer',
+      required: [true, 'Dealer ID is required'],
+      index: true,
+    },
+    orderNumber: {
+      type: String,
+      required: [true, 'Order number is required'],
+      trim: true,
+    },
+    status: {
+      type: String,
+      enum: ['pending', 'delivered', 'cancelled'],
+      default: 'pending',
+      index: true,
+    },
+    isUrgent: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    deliveryInstructions: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    notes: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    pdfUrl: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    // Total amount of the order (manually entered after receiving dealer's bill)
+    totalAmount: {
+      type: Number,
+      min: [0, 'Total amount cannot be negative'],
+      default: null,
+    },
+    // Payment due date for this order
+    dueDate: {
+      type: Date,
+      default: null,
+    },
+    deliveredAt: {
+      type: Date,
+      default: null,
+    },
+    cancelledAt: {
+      type: Date,
+      default: null,
+    },
+    deliveryAudit: {
+      deliveredBy: { type: String, trim: true, default: '' },
+      deliveryNote: { type: String, trim: true, default: '' },
+      deliveredAt: { type: Date, default: null },
+    },
+  },
+  { timestamps: true },
+);
+
+dealerOrderSchema.index({ clientId: 1, orderNumber: 1 }, { unique: true });
+dealerOrderSchema.index({ clientId: 1, dealerId: 1, createdAt: -1 });
+
+// ============================================================================
+// DEALER ORDER ITEM
+// ============================================================================
+const dealerOrderItemSchema = new Schema(
+  {
+    orderId: {
+      type: Schema.Types.ObjectId,
+      ref: 'DealerOrder',
+      required: [true, 'Order ID is required'],
+      index: true,
+    },
+    itemId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Item',
+      required: [true, 'Item ID is required'],
+      index: true,
+    },
+    itemNameSnapshot: {
+      type: String,
+      required: [true, 'Item name snapshot is required'],
+      trim: true,
+    },
+    quantity: {
+      type: Number,
+      required: [true, 'Quantity is required'],
+      min: [1, 'Quantity must be at least 1'],
+    },
+  },
+  { timestamps: false },
+);
+
+dealerOrderItemSchema.index({ orderId: 1, itemId: 1 });
+
+// ============================================================================
+// DEALER PAYMENT
+// ============================================================================
+const dealerPaymentSchema = new Schema(
+  {
+    clientId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Client',
+      required: [true, 'Client ID is required'],
+      index: true,
+    },
+    dealerId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Dealer',
+      required: [true, 'Dealer ID is required'],
+      index: true,
+    },
+    // Optional: link payment to a specific order
+    orderId: {
+      type: Schema.Types.ObjectId,
+      ref: 'DealerOrder',
+      default: null,
+      index: true,
+    },
+    amount: {
+      type: Number,
+      required: [true, 'Payment amount is required'],
+      min: [0, 'Amount cannot be negative'],
+    },
+    method: {
+      type: String,
+      enum: ['cash', 'card', 'upi', 'bank', 'other'],
+      default: 'cash',
+    },
+    note: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    proofUrl: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    paidAt: {
+      type: Date,
+      default: Date.now,
+      immutable: true,
+    },
+  },
+  { timestamps: true },
+);
+
+dealerPaymentSchema.index({ clientId: 1, dealerId: 1, paidAt: -1 });
 
 // ============================================================================
 // EXPORT MODELS
@@ -523,22 +817,30 @@ export const Client = mongoose.model('Client', clientSchema);
 export const OtpSession = mongoose.model('OtpSession', otpSessionSchema);
 export const DeviceSession = mongoose.model(
   'DeviceSession',
-  deviceSessionSchema
+  deviceSessionSchema,
 );
-export const Customer = mongoose.model('Customer', customerSchema);
+export const clientCustomer = mongoose.model(
+  'clientCustomer',
+  clientCustomerSchema,
+);
 export const ItemGroup = mongoose.model('ItemGroup', itemGroupSchema);
+export const Dealer = mongoose.model('Dealer', dealerSchema);
 export const Item = mongoose.model('Item', itemSchema);
 export const Cart = mongoose.model('Cart', cartSchema);
 export const CartItem = mongoose.model('CartItem', cartItemSchema);
-export const IncompleteSale = mongoose.model(
-  'IncompleteSale',
-  incompleteSaleSchema
-);
 export const Invoice = mongoose.model('Invoice', invoiceSchema);
-export const InvoiceItem = mongoose.model('InvoiceItem', invoiceItemSchema);
 export const PurchaseHistory = mongoose.model(
   'PurchaseHistory',
-  purchaseHistorySchema
+  purchaseHistorySchema,
+);
+export const DealerOrder = mongoose.model('DealerOrder', dealerOrderSchema);
+export const DealerOrderItem = mongoose.model(
+  'DealerOrderItem',
+  dealerOrderItemSchema,
+);
+export const DealerPayment = mongoose.model(
+  'DealerPayment',
+  dealerPaymentSchema,
 );
 
 // ============================================================================
@@ -579,7 +881,7 @@ const paymentSchema = new Schema(
       immutable: true,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 export const Payment = mongoose.model('Payment', paymentSchema);
