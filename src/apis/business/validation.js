@@ -154,7 +154,6 @@ export const createItemSchema = z.object({
   lowStockQuantity: nonNegativeInt.optional().default(5),
   unit: unit.optional().default('nos'),
   groupId: objectId.optional(),
-  dealerIds: z.array(objectId).optional(),
   description: z.string().trim().optional().or(z.literal('')),
 });
 
@@ -165,7 +164,6 @@ export const updateItemSchema = z.object({
   lowStockQuantity: nonNegativeInt.optional(),
   unit: unit.optional(),
   groupId: objectId.nullable().optional(),
-  dealerIds: z.array(objectId).optional(),
   description: z.string().trim().optional(),
 });
 

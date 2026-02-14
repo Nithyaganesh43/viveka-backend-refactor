@@ -177,7 +177,6 @@ export const createItem = async (
   clientId,
   name,
   price,
-  dealerIds = [],
   stock = 0,
   lowStockQuantity = 5,
   unit = 'nos',
@@ -185,32 +184,10 @@ export const createItem = async (
   description = '',
 ) => {
   try {
-    // Ensure dealerIds is an array
-    const normalizedDealerIds = Array.isArray(dealerIds)
-      ? dealerIds
-      : dealerIds
-        ? [dealerIds]
-        : [];
-
-    // Validate that all dealerIds exist (if any are provided)
-    if (normalizedDealerIds.length > 0) {
-      const existingDealers = await repository.find('dealers', {
-        _id: { $in: normalizedDealerIds },
-        clientId,
-      });
-
-      if (existingDealers.length !== normalizedDealerIds.length) {
-        throw new Error(
-          'One or more dealer IDs are invalid or do not belong to this client',
-        );
-      }
-    }
-
     const item = await repository.create('items', {
       clientId,
       name,
       price,
-      dealerIds: normalizedDealerIds,
       stock,
       lowStockQuantity,
       unit,
@@ -248,30 +225,6 @@ export const getItems = async (clientId, groupId = null) => {
 
 export const updateItem = async (clientId, itemId, updateData) => {
   try {
-    // Validate dealerIds if they are being updated
-    if (updateData.dealerIds !== undefined) {
-      const normalizedDealerIds = Array.isArray(updateData.dealerIds)
-        ? updateData.dealerIds
-        : updateData.dealerIds
-          ? [updateData.dealerIds]
-          : [];
-
-      if (normalizedDealerIds.length > 0) {
-        const existingDealers = await repository.find('dealers', {
-          _id: { $in: normalizedDealerIds },
-          clientId,
-        });
-
-        if (existingDealers.length !== normalizedDealerIds.length) {
-          throw new Error(
-            'One or more dealer IDs are invalid or do not belong to this client',
-          );
-        }
-      }
-
-      updateData.dealerIds = normalizedDealerIds;
-    }
-
     const item = await repository.updateOne(
       'items',
       { _id: itemId, clientId },

@@ -11,7 +11,6 @@ import mockOtpRouter from './src/apis/mockOtp/route.js';
 import authRoutes from './src/apis/auth/route.js';
 import clientRoutes from './src/apis/client/route.js';
 import businessRoutes from './src/apis/business/route.js';
-import dealerRoutes from './src/apis/dealer/route.js';
 import dashboardRoutes from './src/apis/dashboard/route.js';
 import syncRoutes from './src/apis/sync/route.js';
 
@@ -73,9 +72,6 @@ app.use('/api/auth/client', clientRoutes);
 
 // Business Routes (Items, Carts, Invoices, etc.)
 app.use('/api/business', businessRoutes);
-
-// Dealer Routes (Internal supplier orders/payments)
-app.use('/api/dealer', dealerRoutes);
 
 // Dashboard Routes (summary, trends, top items)
 app.use('/api/dashboard', dashboardRoutes);

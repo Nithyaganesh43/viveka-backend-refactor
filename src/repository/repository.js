@@ -9,10 +9,6 @@ import {
   CartItem,
   Invoice,
   PurchaseHistory,
-  Dealer,
-  DealerOrder,
-  DealerOrderItem,
-  DealerPayment,
   Payment,
 } from '../models/Model.js';
 
@@ -35,10 +31,6 @@ class Repository {
       cartitems: CartItem,
       invoices: Invoice,
       purchasehistories: PurchaseHistory,
-      dealers: Dealer,
-      dealerorders: DealerOrder,
-      dealerorderitems: DealerOrderItem,
-      dealerpayments: DealerPayment,
       payments: Payment,
     };
   }

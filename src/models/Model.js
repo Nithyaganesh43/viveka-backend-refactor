@@ -291,12 +291,6 @@ const itemSchema = new Schema(
       required: [true, 'Price is required'],
       min: [0, 'Price cannot be negative'],
     },
-    // Supplier mapping - item can be sourced from multiple dealers
-    dealerIds: {
-      type: [{ type: Schema.Types.ObjectId, ref: 'Dealer' }],
-      default: [],
-      index: true,
-    },
     stock: {
       type: Number,
       required: [true, 'Stock is required'],
@@ -591,226 +585,6 @@ const purchaseHistorySchema = new Schema(
 );
 
 // ============================================================================
-// DEALER (Internal supplier)
-// ============================================================================
-const dealerSchema = new Schema(
-  {
-    clientId: {
-      type: Schema.Types.ObjectId,
-      ref: 'Client',
-      required: [true, 'Client ID is required'],
-      index: true,
-    },
-    name: {
-      type: String,
-      required: [true, 'Dealer name is required'],
-      trim: true,
-      minlength: [2, 'Dealer name must be at least 2 characters'],
-    },
-    contactPerson: {
-      type: String,
-      trim: true,
-      default: '',
-    },
-    phoneNumber: {
-      type: String,
-      trim: true,
-      default: '',
-    },
-    email: {
-      type: String,
-      trim: true,
-      default: '',
-    },
-    address: {
-      type: String,
-      trim: true,
-      default: '',
-    },
-    logoUrl: {
-      type: String,
-      trim: true,
-      default: '',
-    },
-    isActive: {
-      type: Boolean,
-      default: true,
-      index: true,
-    },
-  },
-  { timestamps: true },
-);
-
-dealerSchema.index({ clientId: 1, name: 1 });
-
-// ============================================================================
-// DEALER ORDER
-// ============================================================================
-const dealerOrderSchema = new Schema(
-  {
-    clientId: {
-      type: Schema.Types.ObjectId,
-      ref: 'Client',
-      required: [true, 'Client ID is required'],
-      index: true,
-    },
-    dealerId: {
-      type: Schema.Types.ObjectId,
-      ref: 'Dealer',
-      required: [true, 'Dealer ID is required'],
-      index: true,
-    },
-    orderNumber: {
-      type: String,
-      required: [true, 'Order number is required'],
-      trim: true,
-    },
-    status: {
-      type: String,
-      enum: ['pending', 'delivered', 'cancelled'],
-      default: 'pending',
-      index: true,
-    },
-    isUrgent: {
-      type: Boolean,
-      default: false,
-      index: true,
-    },
-    deliveryInstructions: {
-      type: String,
-      trim: true,
-      default: '',
-    },
-    notes: {
-      type: String,
-      trim: true,
-      default: '',
-    },
-    pdfUrl: {
-      type: String,
-      trim: true,
-      default: '',
-    },
-    // Total amount of the order (manually entered after receiving dealer's bill)
-    totalAmount: {
-      type: Number,
-      min: [0, 'Total amount cannot be negative'],
-      default: null,
-    },
-    // Payment due date for this order
-    dueDate: {
-      type: Date,
-      default: null,
-    },
-    deliveredAt: {
-      type: Date,
-      default: null,
-    },
-    cancelledAt: {
-      type: Date,
-      default: null,
-    },
-    deliveryAudit: {
-      deliveredBy: { type: String, trim: true, default: '' },
-      deliveryNote: { type: String, trim: true, default: '' },
-      deliveredAt: { type: Date, default: null },
-    },
-  },
-  { timestamps: true },
-);
-
-dealerOrderSchema.index({ clientId: 1, orderNumber: 1 }, { unique: true });
-dealerOrderSchema.index({ clientId: 1, dealerId: 1, createdAt: -1 });
-
-// ============================================================================
-// DEALER ORDER ITEM
-// ============================================================================
-const dealerOrderItemSchema = new Schema(
-  {
-    orderId: {
-      type: Schema.Types.ObjectId,
-      ref: 'DealerOrder',
-      required: [true, 'Order ID is required'],
-      index: true,
-    },
-    itemId: {
-      type: Schema.Types.ObjectId,
-      ref: 'Item',
-      required: [true, 'Item ID is required'],
-      index: true,
-    },
-    itemNameSnapshot: {
-      type: String,
-      required: [true, 'Item name snapshot is required'],
-      trim: true,
-    },
-    quantity: {
-      type: Number,
-      required: [true, 'Quantity is required'],
-      min: [1, 'Quantity must be at least 1'],
-    },
-  },
-  { timestamps: false },
-);
-
-dealerOrderItemSchema.index({ orderId: 1, itemId: 1 });
-
-// ============================================================================
-// DEALER PAYMENT
-// ============================================================================
-const dealerPaymentSchema = new Schema(
-  {
-    clientId: {
-      type: Schema.Types.ObjectId,
-      ref: 'Client',
-      required: [true, 'Client ID is required'],
-      index: true,
-    },
-    dealerId: {
-      type: Schema.Types.ObjectId,
-      ref: 'Dealer',
-      required: [true, 'Dealer ID is required'],
-      index: true,
-    },
-    // Optional: link payment to a specific order
-    orderId: {
-      type: Schema.Types.ObjectId,
-      ref: 'DealerOrder',
-      default: null,
-      index: true,
-    },
-    amount: {
-      type: Number,
-      required: [true, 'Payment amount is required'],
-      min: [0, 'Amount cannot be negative'],
-    },
-    method: {
-      type: String,
-      enum: ['cash', 'card', 'upi', 'bank', 'other'],
-      default: 'cash',
-    },
-    note: {
-      type: String,
-      trim: true,
-      default: '',
-    },
-    proofUrl: {
-      type: String,
-      trim: true,
-      default: '',
-    },
-    paidAt: {
-      type: Date,
-      default: Date.now,
-      immutable: true,
-    },
-  },
-  { timestamps: true },
-);
-
-dealerPaymentSchema.index({ clientId: 1, dealerId: 1, paidAt: -1 });
-
-// ============================================================================
 // EXPORT MODELS
 // ============================================================================
 export const Client = mongoose.model('Client', clientSchema);
@@ -824,7 +598,6 @@ export const clientCustomer = mongoose.model(
   clientCustomerSchema,
 );
 export const ItemGroup = mongoose.model('ItemGroup', itemGroupSchema);
-export const Dealer = mongoose.model('Dealer', dealerSchema);
 export const Item = mongoose.model('Item', itemSchema);
 export const Cart = mongoose.model('Cart', cartSchema);
 export const CartItem = mongoose.model('CartItem', cartItemSchema);
@@ -832,15 +605,6 @@ export const Invoice = mongoose.model('Invoice', invoiceSchema);
 export const PurchaseHistory = mongoose.model(
   'PurchaseHistory',
   purchaseHistorySchema,
-);
-export const DealerOrder = mongoose.model('DealerOrder', dealerOrderSchema);
-export const DealerOrderItem = mongoose.model(
-  'DealerOrderItem',
-  dealerOrderItemSchema,
-);
-export const DealerPayment = mongoose.model(
-  'DealerPayment',
-  dealerPaymentSchema,
 );
 
 // ============================================================================

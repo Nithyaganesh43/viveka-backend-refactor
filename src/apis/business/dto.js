@@ -19,7 +19,6 @@
  * @property {number} [lowStockQuantity]
  * @property {string} [unit]
  * @property {string} [groupId]
- * @property {string[]} [dealerIds]
  * @property {string} [description]
  */
 
