@@ -52,6 +52,85 @@ Viveka Backend is a comprehensive **B2B billing and invoicing system** designed 
 
 ## 🏗️ System Architecture
 
+```
+backend-refactor/
+├── index.js
+├── package.json
+├── README.md
+├── API_DOCUMENTATION.md
+├── structureRules.md
+├── logs/
+├── src/
+│   ├── apis/
+│   │   ├── auth/
+│   │   │   ├── controller.js
+│   │   │   ├── dto.js
+│   │   │   ├── route.js
+│   │   │   └── validation.js
+│   │   ├── business/
+│   │   │   ├── controller.js
+│   │   │   ├── dto.js
+│   │   │   ├── route.js
+│   │   │   └── validation.js
+│   │   ├── client/
+│   │   │   ├── controller.js
+│   │   │   ├── dto.js
+│   │   │   ├── route.js
+│   │   │   └── validation.js
+│   │   ├── dashboard/
+│   │   │   ├── controller.js
+│   │   │   ├── dto.js
+│   │   │   ├── route.js
+│   │   │   └── validation.js
+│   │   ├── dealer/
+│   │   │   ├── controller.js
+│   │   │   ├── dto.js
+│   │   │   ├── route.js
+│   │   │   └── validation.js
+│   │   ├── mockOtp/
+│   │   │   ├── controller.js
+│   │   │   ├── dto.js
+│   │   │   ├── route.js
+│   │   │   └── validation.js
+│   │   ├── otp/
+│   │   │   ├── controller.js
+│   │   │   ├── dto.js
+│   │   │   ├── route.js
+│   │   │   └── validation.js
+│   │   └── sync/
+│   │       ├── controller.js
+│   │       ├── dto.js
+│   │       ├── route.js
+│   │       └── validation.js
+│   ├── config/
+│   │   └── db.js
+│   ├── middleware/
+│   │   ├── authMiddleware.js
+│   │   ├── rateLimiter.js
+│   │   └── validate.js
+│   ├── models/
+│   │   └── Model.js
+│   ├── services/
+│   │   ├── authService.js
+│   │   ├── businessService.js
+│   │   ├── clientService.js
+│   │   ├── dashboardService.js
+│   │   ├── dealerService.js
+│   │   ├── mockOtpService.js
+│   │   └── otpService.js
+│   └── utils/
+│       └── response.js
+├── Stories/
+│   ├── AuthAndOTP.md
+│   ├── Client.md
+│   ├── ClientCustomer.md
+│   ├── Dealer.md
+│   ├── ItemAndItemGroup.md
+│   └── Sync.md
+└── tests/
+    └── test.js
+```
+
 ---
 
 ## 🏗️ System Architecture

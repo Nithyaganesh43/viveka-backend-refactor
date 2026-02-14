@@ -105,7 +105,7 @@ export const recommendLowStockItems = async (clientId, dealerId) => {
     { $match: { isLowStock: true } },
     { $sort: { stock: 1, updatedAt: -1 } },
   ]);
-  return { success: true, recommendations: items };
+  return items;
 };
 
 export const createDealerOrder = async (clientId, payload) => {

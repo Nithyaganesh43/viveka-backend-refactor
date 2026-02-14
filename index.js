@@ -6,14 +6,14 @@ import compression from 'compression';
 import { connectDB } from './src/config/db.js';
 
 // Import routes
-import otpRoutes from './src/api/routes/otpRoutes.js';
-import mockOtpRouter from './src/api/routes/mockOtpRoutes.js';
-import authRoutes from './src/api/routes/authRoutes.js';
-import clientRoutes from './src/api/routes/clientRoutes.js';
-import businessRoutes from './src/api/routes/businessRoutes.js';
-import dealerRoutes from './src/api/routes/dealerRoutes.js';
-import dashboardRoutes from './src/api/routes/dashboardRoutes.js';
-import syncRoutes from './src/api/routes/syncRoutes.js';
+import otpRoutes from './src/apis/otp/route.js';
+import mockOtpRouter from './src/apis/mockOtp/route.js';
+import authRoutes from './src/apis/auth/route.js';
+import clientRoutes from './src/apis/client/route.js';
+import businessRoutes from './src/apis/business/route.js';
+import dealerRoutes from './src/apis/dealer/route.js';
+import dashboardRoutes from './src/apis/dashboard/route.js';
+import syncRoutes from './src/apis/sync/route.js';
 
 // Initialize express app
 const app = express();
