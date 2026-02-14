@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { Client, DeviceSession } from '../models/Model.js';
+import repository from '../repository/repository.js';
 import { verifyOTP } from './otpService.js';
 import { defaultCustomerFieldSettings } from './clientService.js';
 
@@ -23,7 +23,7 @@ export const registerClient = async ({
   profileUrl,
 }) => {
   try {
-    const existingClient = await Client.findOne({ phoneNumber });
+    const existingClient = await repository.findOne('clients', { phoneNumber });
     if (existingClient) {
       throw new Error('Phone number already registered');
     }
@@ -49,10 +49,11 @@ export const registerClient = async ({
       clientData.profileUrl = profileUrl;
     }
 
-    const newClient = await Client.create(clientData);
+    const newClient = await repository.create('clients', clientData);
 
     // Create an initial active device session and JWT
-    const activeSession = await DeviceSession.findOneAndUpdate(
+    const activeSession = await repository.updateOne(
+      'devicesessions',
       { clientId: newClient._id, deviceId },
       {
         clientId: newClient._id,
@@ -64,7 +65,8 @@ export const registerClient = async ({
     );
 
     // Deactivate any other sessions just in case
-    await DeviceSession.updateMany(
+    await repository.updateMany(
+      'devicesessions',
       { clientId: newClient._id, _id: { $ne: activeSession._id } },
       { isActive: false },
     );
@@ -101,7 +103,7 @@ export const loginClient = async (
   deviceId = 'default-device',
 ) => {
   try {
-    const client = await Client.findOne({ phoneNumber });
+    const client = await repository.findOne('clients', { phoneNumber });
     if (!client) {
       throw new Error('Client not found');
     }
@@ -113,7 +115,8 @@ export const loginClient = async (
     await verifyOTP(phoneNumber, otp, 'login');
 
     // Upsert device session for this device
-    const activeSession = await DeviceSession.findOneAndUpdate(
+    const activeSession = await repository.updateOne(
+      'devicesessions',
       { clientId: client._id, deviceId },
       {
         clientId: client._id,
@@ -125,7 +128,8 @@ export const loginClient = async (
     );
 
     // Deactivate other sessions (single-device policy)
-    await DeviceSession.updateMany(
+    await repository.updateMany(
+      'devicesessions',
       { clientId: client._id, _id: { $ne: activeSession._id } },
       { isActive: false },
     );
@@ -159,7 +163,8 @@ export const loginClient = async (
 // Logout client
 export const logoutClient = async (clientId, deviceSessionId) => {
   try {
-    const session = await DeviceSession.findOneAndUpdate(
+    const session = await repository.updateOne(
+      'devicesessions',
       { _id: deviceSessionId, clientId, isActive: true },
       { isActive: false },
       { new: true },

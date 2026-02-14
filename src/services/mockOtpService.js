@@ -1,4 +1,4 @@
-import { Client, OtpSession } from '../models/Model.js';
+import repository from '../repository/repository.js';
 import bcrypt from 'bcrypt';
 
 const OTP_TTL_SECONDS = 600;
@@ -36,14 +36,14 @@ export const sendOTP = async (phoneNumber, purpose) => {
     }
 
     if (normalizedPurpose === 'register') {
-      const existingClient = await Client.findOne({ phoneNumber });
+      const existingClient = await repository.findOne('clients', { phoneNumber });
       if (existingClient) {
         throw new Error('Phone number already registered');
       }
     }
 
     if (normalizedPurpose === 'login') {
-      const client = await Client.findOne({ phoneNumber });
+      const client = await repository.findOne('clients', { phoneNumber });
       if (!client) {
         throw new Error('Client not found. Please register first');
       }
@@ -55,9 +55,9 @@ export const sendOTP = async (phoneNumber, purpose) => {
     const otp = generateOtp();
     const expiresAt = new Date(Date.now() + OTP_TTL_SECONDS * 1000);
 
-    await OtpSession.deleteMany({ phoneNumber, purpose: normalizedPurpose });
+    await repository.deleteMany('otpsessions', { phoneNumber, purpose: normalizedPurpose });
 
-    await OtpSession.create({
+    await repository.create('otpsessions', {
       phoneNumber,
       purpose: normalizedPurpose,
       otpHash: await hashOtp(otp),
@@ -86,7 +86,7 @@ export const verifyOTP = async (phoneNumber, otp, purpose, consume = true) => {
   try {
     const normalizedPurpose = assertPurpose(purpose);
 
-    const otpSession = await OtpSession.findOne({
+    const otpSession = await repository.findOne('otpsessions', {
       phoneNumber,
       purpose: normalizedPurpose,
     });
@@ -96,12 +96,12 @@ export const verifyOTP = async (phoneNumber, otp, purpose, consume = true) => {
     }
 
     if (otpSession.expiresAt < new Date()) {
-      await OtpSession.deleteOne({ _id: otpSession._id });
+      await repository.deleteOne('otpsessions', { _id: otpSession._id });
       throw new Error('OTP session expired. Please request new OTP');
     }
 
     if (otpSession.attempts >= MAX_ATTEMPTS) {
-      await OtpSession.deleteOne({ _id: otpSession._id });
+      await repository.deleteOne('otpsessions', { _id: otpSession._id });
       throw new Error('Maximum OTP attempts exceeded. Please request new OTP');
     }
 
@@ -113,7 +113,7 @@ export const verifyOTP = async (phoneNumber, otp, purpose, consume = true) => {
     }
 
     if (consume) {
-      await OtpSession.deleteOne({ _id: otpSession._id });
+      await repository.deleteOne('otpsessions', { _id: otpSession._id });
     } else {
       otpSession.isVerified = true;
       await otpSession.save();

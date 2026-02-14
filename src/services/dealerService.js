@@ -1,11 +1,5 @@
 import mongoose from 'mongoose';
-import {
-  Dealer,
-  DealerOrder,
-  DealerOrderItem,
-  DealerPayment,
-  Item,
-} from '../models/Model.js';
+import repository from '../repository/repository.js';
 
 const toObjectId = (id) => {
   if (!id) return null;
@@ -22,7 +16,7 @@ export const createDealer = async (clientId, payload) => {
     logoUrl = '',
   } = payload || {};
   if (!name) throw new Error('name is required');
-  const dealer = await Dealer.create({
+  const dealer = await repository.create('dealers', {
     clientId,
     name,
     contactPerson,
@@ -35,14 +29,15 @@ export const createDealer = async (clientId, payload) => {
 };
 
 export const getDealers = async (clientId) => {
-  const dealers = await Dealer.find({ clientId, isActive: true }).sort({
-    createdAt: -1,
+  const dealers = await repository.find('dealers', { clientId, isActive: true }, null, {
+    sort: { createdAt: -1 },
   });
   return { success: true, dealers };
 };
 
 export const updateDealer = async (clientId, dealerId, updateData) => {
-  const dealer = await Dealer.findOneAndUpdate(
+  const dealer = await repository.updateOne(
+    'dealers',
     { _id: dealerId, clientId },
     { ...updateData, updatedAt: new Date() },
     { new: true },
@@ -52,7 +47,8 @@ export const updateDealer = async (clientId, dealerId, updateData) => {
 };
 
 export const deleteDealer = async (clientId, dealerId) => {
-  const dealer = await Dealer.findOneAndUpdate(
+  const dealer = await repository.updateOne(
+    'dealers',
     { _id: dealerId, clientId },
     { isActive: false, updatedAt: new Date() },
     { new: true },
@@ -76,12 +72,12 @@ export const getDealerItems = async (
     // Use lowStockQuantity field for dynamic threshold
     filter.$expr = { $lte: ['$stock', '$lowStockQuantity'] };
   }
-  const items = await Item.find(filter).sort({ updatedAt: -1 });
+  const items = await repository.find('items', filter, null, { sort: { updatedAt: -1 } });
   return { success: true, items };
 };
 
 export const recommendLowStockItems = async (clientId, dealerId) => {
-  const items = await Item.aggregate([
+  const items = await repository.aggregate('items', [
     {
       $match: {
         clientId: toObjectId(clientId),
@@ -137,7 +133,7 @@ export const createDealerOrder = async (clientId, payload) => {
       throw new Error('Each item must include quantity > 0');
   }
 
-  const dbItems = await Item.find({
+  const dbItems = await repository.find('items', {
     _id: { $in: itemIds },
     clientId,
     isActive: true,
@@ -164,7 +160,7 @@ export const createDealerOrder = async (clientId, payload) => {
 
   const finalOrderNumber = orderNumber || `DORD-${Date.now()}`;
 
-  const order = await DealerOrder.create({
+  const order = await repository.create('dealerorders', {
     clientId,
     dealerId,
     orderNumber: finalOrderNumber,
@@ -177,7 +173,7 @@ export const createDealerOrder = async (clientId, payload) => {
     dueDate: dueDate ? new Date(dueDate) : null,
   });
 
-  await DealerOrderItem.insertMany(
+  await repository.bulkCreate('dealerorderitems',
     lines.map((l) => ({ ...l, orderId: order._id })),
   );
 
@@ -185,28 +181,32 @@ export const createDealerOrder = async (clientId, payload) => {
 };
 
 export const getDealerOrders = async (clientId, dealerId) => {
-  const orders = await DealerOrder.find({ clientId, dealerId }).sort({
-    createdAt: -1,
+  const orders = await repository.find('dealerorders', { clientId, dealerId }, null, {
+    sort: { createdAt: -1 },
   });
   return { success: true, orders };
 };
 
 export const getDealerOrderById = async (clientId, orderId) => {
-  const order = await DealerOrder.findOne({ _id: orderId, clientId });
+  const order = await repository.findOne('dealerorders', { _id: orderId, clientId });
   if (!order) throw new Error('Order not found');
-  const items = await DealerOrderItem.find({ orderId: order._id });
+  const items = await repository.find('dealerorderitems', { orderId: order._id });
   return { success: true, order, items };
 };
 
 export const cancelDealerOrder = async (clientId, orderId) => {
-  const order = await DealerOrder.findOne({ _id: orderId, clientId });
+  const order = await repository.findOne('dealerorders', { _id: orderId, clientId });
   if (!order) throw new Error('Order not found');
   if (order.status !== 'pending')
     throw new Error('Only pending orders can be cancelled');
-  order.status = 'cancelled';
-  order.cancelledAt = new Date();
-  await order.save();
-  return { success: true, order };
+  
+  const updatedOrder = await repository.updateOne(
+    'dealerorders',
+    { _id: orderId, clientId },
+    { status: 'cancelled', cancelledAt: new Date() },
+    { new: true },
+  );
+  return { success: true, order: updatedOrder };
 };
 
 /**
@@ -215,37 +215,43 @@ export const cancelDealerOrder = async (clientId, orderId) => {
 export const updateOrderTotal = async (clientId, orderId, payload) => {
   const { totalAmount, dueDate } = payload || {};
 
-  const order = await DealerOrder.findOne({ _id: orderId, clientId });
+  const order = await repository.findOne('dealerorders', { _id: orderId, clientId });
   if (!order) throw new Error('Order not found');
   if (order.status === 'cancelled')
     throw new Error('Cannot update cancelled orders');
+
+  const updateData = { updatedAt: new Date() };
 
   if (totalAmount !== undefined) {
     if (totalAmount !== null && totalAmount < 0) {
       throw new Error('Total amount cannot be negative');
     }
-    order.totalAmount = totalAmount;
+    updateData.totalAmount = totalAmount;
   }
 
   if (dueDate !== undefined) {
-    order.dueDate = dueDate ? new Date(dueDate) : null;
+    updateData.dueDate = dueDate ? new Date(dueDate) : null;
   }
 
-  order.updatedAt = new Date();
-  await order.save();
+  const updatedOrder = await repository.updateOne(
+    'dealerorders',
+    { _id: orderId, clientId },
+    updateData,
+    { new: true },
+  );
 
-  return { success: true, order };
+  return { success: true, order: updatedOrder };
 };
 
 /**
  * Get all payments made for a specific order
  */
 export const getOrderPayments = async (clientId, orderId) => {
-  const order = await DealerOrder.findOne({ _id: orderId, clientId });
+  const order = await repository.findOne('dealerorders', { _id: orderId, clientId });
   if (!order) throw new Error('Order not found');
 
-  const payments = await DealerPayment.find({ clientId, orderId }).sort({
-    paidAt: -1,
+  const payments = await repository.find('dealerpayments', { clientId, orderId }, null, {
+    sort: { paidAt: -1 },
   });
 
   const totalPaid = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
@@ -275,7 +281,7 @@ export const markDealerOrderDelivered = async (
   orderId,
   { deliveredBy, deliveryNote, totalAmount, dueDate } = {},
 ) => {
-  const order = await DealerOrder.findOne({
+  const order = await repository.findOne('dealerorders', {
     _id: orderId,
     clientId,
   });
@@ -284,7 +290,7 @@ export const markDealerOrderDelivered = async (
     throw new Error('Only pending orders can be marked delivered');
   }
 
-  const orderItems = await DealerOrderItem.find({
+  const orderItems = await repository.find('dealerorderitems', {
     orderId: order._id,
   });
   if (!orderItems.length) throw new Error('Order has no items');
@@ -300,28 +306,35 @@ export const markDealerOrderDelivered = async (
     },
   }));
   if (stockUpdates.length > 0) {
-    await Item.bulkWrite(stockUpdates);
+    await repository.bulkWrite('items', stockUpdates);
   }
 
-  order.status = 'delivered';
-  order.deliveredAt = new Date();
-  order.deliveryAudit = {
-    deliveredBy: deliveredBy || '',
-    deliveryNote: deliveryNote || '',
-    deliveredAt: order.deliveredAt,
+  const updateData = {
+    status: 'delivered',
+    deliveredAt: new Date(),
+    deliveryAudit: {
+      deliveredBy: deliveredBy || '',
+      deliveryNote: deliveryNote || '',
+      deliveredAt: new Date(),
+    },
   };
 
   // Update totalAmount and dueDate if provided
   if (totalAmount !== undefined && totalAmount !== null) {
-    order.totalAmount = totalAmount;
+    updateData.totalAmount = totalAmount;
   }
   if (dueDate !== undefined) {
-    order.dueDate = dueDate ? new Date(dueDate) : null;
+    updateData.dueDate = dueDate ? new Date(dueDate) : null;
   }
 
-  await order.save();
+  const updatedOrder = await repository.updateOne(
+    'dealerorders',
+    { _id: orderId, clientId },
+    updateData,
+    { new: true },
+  );
 
-  return { success: true, order };
+  return { success: true, order: updatedOrder };
 };
 
 export const createDealerPayment = async (clientId, payload) => {
@@ -339,7 +352,7 @@ export const createDealerPayment = async (clientId, payload) => {
 
   // If orderId is provided, validate it belongs to the dealer
   if (orderId) {
-    const order = await DealerOrder.findOne({
+    const order = await repository.findOne('dealerorders', {
       _id: orderId,
       clientId,
       dealerId,
@@ -348,7 +361,7 @@ export const createDealerPayment = async (clientId, payload) => {
       throw new Error('Order not found or does not belong to this dealer');
   }
 
-  const payment = await DealerPayment.create({
+  const payment = await repository.create('dealerpayments', {
     clientId,
     dealerId,
     orderId,
@@ -362,15 +375,15 @@ export const createDealerPayment = async (clientId, payload) => {
 };
 
 export const getDealerPayments = async (clientId, dealerId) => {
-  const payments = await DealerPayment.find({ clientId, dealerId }).sort({
-    paidAt: -1,
+  const payments = await repository.find('dealerpayments', { clientId, dealerId }, null, {
+    sort: { paidAt: -1 },
   });
   return { success: true, payments };
 };
 
 export const getDealerSummary = async (clientId, dealerId) => {
   const [ordersAgg, paymentsAgg] = await Promise.all([
-    DealerOrder.aggregate([
+    repository.aggregate('dealerorders', [
       {
         $match: {
           clientId: toObjectId(clientId),
@@ -381,7 +394,7 @@ export const getDealerSummary = async (clientId, dealerId) => {
       },
       { $group: { _id: null, totalOrdered: { $sum: '$totalAmount' } } },
     ]),
-    DealerPayment.aggregate([
+    repository.aggregate('dealerpayments', [
       {
         $match: {
           clientId: toObjectId(clientId),
@@ -397,14 +410,16 @@ export const getDealerSummary = async (clientId, dealerId) => {
   const payable = Math.max(totalOrdered - totalPaid, 0);
 
   const [recentOrders, recentPayments] = await Promise.all([
-    DealerOrder.find({ clientId, dealerId })
-      .sort({ createdAt: -1 })
-      .limit(20)
-      .lean(),
-    DealerPayment.find({ clientId, dealerId })
-      .sort({ paidAt: -1 })
-      .limit(20)
-      .lean(),
+    repository.find('dealerorders', { clientId, dealerId }, null, {
+      sort: { createdAt: -1 },
+      limit: 20,
+      lean: true,
+    }),
+    repository.find('dealerpayments', { clientId, dealerId }, null, {
+      sort: { paidAt: -1 },
+      limit: 20,
+      lean: true,
+    }),
   ]);
 
   const timeline = [
@@ -427,7 +442,7 @@ export const getDealerTransactions = async (
 ) => {
   const { limit = 50, skip = 0 } = options;
 
-  const dealer = await Dealer.findOne({
+  const dealer = await repository.findOne('dealers', {
     _id: dealerId,
     clientId,
     isActive: true,
@@ -435,8 +450,8 @@ export const getDealerTransactions = async (
   if (!dealer) throw new Error('Dealer not found');
 
   const [orders, payments] = await Promise.all([
-    DealerOrder.find({ clientId, dealerId }).sort({ createdAt: -1 }).lean(),
-    DealerPayment.find({ clientId, dealerId }).sort({ paidAt: -1 }).lean(),
+    repository.find('dealerorders', { clientId, dealerId }, null, { sort: { createdAt: -1 }, lean: true }),
+    repository.find('dealerpayments', { clientId, dealerId }, null, { sort: { paidAt: -1 }, lean: true }),
   ]);
 
   // Combine orders and payments into a single transactions timeline
@@ -496,12 +511,12 @@ export const getAllDealerTransactions = async (clientId, options = {}) => {
   const { limit = 50, skip = 0 } = options;
 
   // Get all active dealers for the client
-  const dealers = await Dealer.find({ clientId, isActive: true }).lean();
+  const dealers = await repository.find('dealers', { clientId, isActive: true }, null, { lean: true });
   const dealerMap = new Map(dealers.map((d) => [d._id.toString(), d]));
 
   const [orders, payments] = await Promise.all([
-    DealerOrder.find({ clientId }).sort({ createdAt: -1 }).lean(),
-    DealerPayment.find({ clientId }).sort({ paidAt: -1 }).lean(),
+    repository.find('dealerorders', { clientId }, null, { sort: { createdAt: -1 }, lean: true }),
+    repository.find('dealerpayments', { clientId }, null, { sort: { paidAt: -1 }, lean: true }),
   ]);
 
   // Combine orders and payments into a single transactions timeline
@@ -579,17 +594,18 @@ export const getOrderPaymentTransactions = async (clientId, options = {}) => {
     orderFilter.dealerId = toObjectId(dealerId);
   }
 
-  const orders = await DealerOrder.find(orderFilter)
-    .populate('dealerId', 'name contactPerson phoneNumber')
-    .sort({ createdAt: -1 })
-    .lean();
+  const orders = await repository.find('dealerorders', orderFilter, null, {
+    populate: { path: 'dealerId', select: 'name contactPerson phoneNumber' },
+    sort: { createdAt: -1 },
+    lean: true,
+  });
 
   // Get all payments grouped by orderId
   const orderIds = orders.map((o) => o._id);
-  const payments = await DealerPayment.find({
+  const payments = await repository.find('dealerpayments', {
     clientId,
     orderId: { $in: orderIds },
-  }).lean();
+  }, null, { lean: true });
 
   // Group payments by orderId
   const paymentsByOrder = payments.reduce((acc, p) => {
@@ -683,19 +699,19 @@ export const getOrderPaymentTransactions = async (clientId, options = {}) => {
  * Get payment details for a single order
  */
 export const getOrderPaymentDetails = async (clientId, orderId) => {
-  const order = await DealerOrder.findOne({ _id: orderId, clientId })
-    .populate('dealerId', 'name contactPerson phoneNumber')
-    .lean();
+  const order = await repository.findOne('dealerorders', { _id: orderId, clientId }, null, {
+    populate: { path: 'dealerId', select: 'name contactPerson phoneNumber' },
+    lean: true,
+  });
 
   if (!order) throw new Error('Order not found');
 
-  const payments = await DealerPayment.find({ clientId, orderId })
-    .sort({
-      paidAt: -1,
-    })
-    .lean();
+  const payments = await repository.find('dealerpayments', { clientId, orderId }, null, {
+    sort: { paidAt: -1 },
+    lean: true,
+  });
 
-  const items = await DealerOrderItem.find({ orderId }).lean();
+  const items = await repository.find('dealerorderitems', { orderId }, null, { lean: true });
 
   const totalPaid = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
   const orderTotal = order.totalAmount || 0;
@@ -747,11 +763,14 @@ export const getAllPayments = async (clientId, options = {}) => {
   if (dealerId) filter.dealerId = toObjectId(dealerId);
   if (orderId) filter.orderId = toObjectId(orderId);
 
-  const payments = await DealerPayment.find(filter)
-    .populate('dealerId', 'name')
-    .populate('orderId', 'orderNumber totalAmount')
-    .sort({ paidAt: -1 })
-    .lean();
+  const payments = await repository.find('dealerpayments', filter, null, {
+    populate: [
+      { path: 'dealerId', select: 'name' },
+      { path: 'orderId', select: 'orderNumber totalAmount' },
+    ],
+    sort: { paidAt: -1 },
+    lean: true,
+  });
 
   const paginatedPayments = payments.slice(skip, skip + limit);
 
@@ -783,10 +802,13 @@ export const getAllPayments = async (clientId, options = {}) => {
  * Get a single payment by ID
  */
 export const getPaymentById = async (clientId, paymentId) => {
-  const payment = await DealerPayment.findOne({ _id: paymentId, clientId })
-    .populate('dealerId', 'name contactPerson phoneNumber')
-    .populate('orderId', 'orderNumber totalAmount status')
-    .lean();
+  const payment = await repository.findOne('dealerpayments', { _id: paymentId, clientId }, null, {
+    populate: [
+      { path: 'dealerId', select: 'name contactPerson phoneNumber' },
+      { path: 'orderId', select: 'orderNumber totalAmount status' },
+    ],
+    lean: true,
+  });
 
   if (!payment) throw new Error('Payment not found');
 

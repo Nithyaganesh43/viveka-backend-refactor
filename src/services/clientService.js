@@ -1,4 +1,4 @@
-import { Client } from '../models/Model.js';
+import repository from '../repository/repository.js';
 
 export const defaultCustomerFieldSettings = {
   address: false,
@@ -20,7 +20,7 @@ export const buildClientSettings = (client) => {
 // Get client details
 export const getClientDetails = async (clientId) => {
   try {
-    const client = await Client.findById(clientId).select('-passwordHash');
+    const client = await repository.findById('clients', clientId, '-passwordHash');
     if (!client) {
       throw new Error('Client not found');
     }
@@ -54,7 +54,7 @@ export const updateClientProfile = async (clientId, updateData) => {
   let sanitizedCustomerFields = null;
   if (requestedCustomerFields) {
     const existingClient =
-      await Client.findById(clientId).select('clientSettings');
+      await repository.findById('clients', clientId, 'clientSettings');
     const existingSettings = buildClientSettings(existingClient || {});
     sanitizedCustomerFields = {
       ...existingSettings.customerFields,
@@ -92,7 +92,7 @@ export const updateClientProfile = async (clientId, updateData) => {
   }
 
   try {
-    const client = await Client.findById(clientId).select('-passwordHash');
+    const client = await repository.findById('clients', clientId, '-passwordHash');
     if (!client) {
       throw new Error('Client not found');
     }

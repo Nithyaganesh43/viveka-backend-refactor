@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { Invoice } from '../models/Model.js';
+import repository from '../repository/repository.js';
 
 const MONTH_LABELS = [
   'Jan',
@@ -27,7 +27,7 @@ const toObjectId = (id) => new mongoose.Types.ObjectId(id);
 
 export const getDashboardSummary = async (clientId) => {
   try {
-    const [summary] = await Invoice.aggregate([
+    const [summary] = await repository.aggregate('invoices', [
       { $match: { clientId: toObjectId(clientId) } },
       {
         $project: {
@@ -82,7 +82,7 @@ export const getSalesTrends = async (clientId, months = 6) => {
     const startMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     startMonth.setMonth(startMonth.getMonth() - (normalizedMonths - 1));
 
-    const results = await Invoice.aggregate([
+    const results = await repository.aggregate('invoices', [
       {
         $match: {
           clientId: toObjectId(clientId),
@@ -127,7 +127,7 @@ export const getSalesTrends = async (clientId, months = 6) => {
 export const getTopItems = async (clientId, limit = 5) => {
   try {
     const normalizedLimit = normalizeNumber(limit, 5, 1, 50);
-    const results = await Invoice.aggregate([
+    const results = await repository.aggregate('invoices', [
       { $match: { clientId: toObjectId(clientId) } },
       { $unwind: '$products' },
       {

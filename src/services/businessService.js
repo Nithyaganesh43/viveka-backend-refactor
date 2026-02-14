@@ -1,16 +1,5 @@
 import mongoose from 'mongoose';
-import {
-  Client,
-  Item,
-  ItemGroup,
-  clientCustomer,
-  Cart,
-  CartItem,
-  Invoice,
-  PurchaseHistory,
-  Payment,
-  Dealer,
-} from '../models/Model.js';
+import repository from '../repository/repository.js';
 
 // Helper to return invoice products as stored snapshots
 const buildInvoiceWithProductDetails = async (invoiceDoc) => {
@@ -58,7 +47,7 @@ const resolveClientCustomerForInvoice = async ({
   const resolvedclientCustomerId = providedclientCustomerId || null;
 
   if (resolvedclientCustomerId) {
-    customerDoc = await clientCustomer.findOne({
+    customerDoc = await repository.findOne('clientcustomers', {
       _id: resolvedclientCustomerId,
       clientId,
     });
@@ -100,14 +89,12 @@ const getFullClientData = async (clientId) => {
     payments,
     purchaseHistory,
   ] = await Promise.all([
-    ItemGroup.find({ clientId }),
-    Item.find({ clientId }),
-    clientCustomer.find({ clientId }).sort({ createdAt: -1 }),
-    Invoice.find({ clientId }).populate('clientCustomerId'),
-    Payment.find({ clientId }),
-    PurchaseHistory.find({ clientId })
-      .populate('clientCustomerId')
-      .populate('invoiceId'),
+    repository.find('itemgroups', { clientId }),
+    repository.find('items', { clientId }),
+    repository.find('clientcustomers', { clientId }, null, { sort: { createdAt: -1 } }),
+    repository.find('invoices', { clientId }, null, { populate: 'clientCustomerId' }),
+    repository.find('payments', { clientId }),
+    repository.find('purchasehistories', { clientId }, null, { populate: ['clientCustomerId', 'invoiceId'] }),
   ]);
 
   const invoices = await Promise.all(
@@ -129,7 +116,7 @@ const getFullClientData = async (clientId) => {
 // ============================================================================
 export const createItemGroup = async (clientId, name, description = '') => {
   try {
-    const itemGroup = await ItemGroup.create({
+    const itemGroup = await repository.create('itemgroups', {
       clientId,
       name,
       description,
@@ -142,7 +129,7 @@ export const createItemGroup = async (clientId, name, description = '') => {
 
 export const getItemGroups = async (clientId) => {
   try {
-    const itemGroups = await ItemGroup.find({ clientId });
+    const itemGroups = await repository.find('itemgroups', { clientId });
     return { success: true, itemGroups };
   } catch (error) {
     throw new Error(`Failed to fetch item groups: ${error.message}`);
@@ -151,7 +138,8 @@ export const getItemGroups = async (clientId) => {
 
 export const updateItemGroup = async (clientId, groupId, updateData) => {
   try {
-    const itemGroup = await ItemGroup.findOneAndUpdate(
+    const itemGroup = await repository.updateOne(
+      'itemgroups',
       { _id: groupId, clientId },
       { ...updateData, updatedAt: new Date() },
       { new: true },
@@ -167,10 +155,12 @@ export const updateItemGroup = async (clientId, groupId, updateData) => {
 
 export const deleteItemGroup = async (clientId, groupId) => {
   try {
-    const itemGroup = await ItemGroup.findOneAndDelete({
-      _id: groupId,
-      clientId,
-    });
+    const itemGroup = await repository.updateOne(
+      'itemgroups',
+      { _id: groupId, clientId },
+      { isActive: false },
+      { new: true },
+    );
     if (!itemGroup) {
       throw new Error('Item group not found');
     }
@@ -204,7 +194,7 @@ export const createItem = async (
 
     // Validate that all dealerIds exist (if any are provided)
     if (normalizedDealerIds.length > 0) {
-      const existingDealers = await Dealer.find({
+      const existingDealers = await repository.find('dealers', {
         _id: { $in: normalizedDealerIds },
         clientId,
       });
@@ -216,7 +206,7 @@ export const createItem = async (
       }
     }
 
-    const item = await Item.create({
+    const item = await repository.create('items', {
       clientId,
       name,
       price,
@@ -243,7 +233,7 @@ export const getItems = async (clientId, groupId = null) => {
     if (groupId) {
       filter.groupId = groupId;
     }
-    const items = await Item.find(filter);
+    const items = await repository.find('items', filter);
     const normalizedItems = items.map((item) => ({
       ...item.toObject(),
       groupId: item.groupId ? item.groupId.toString() : null,
@@ -267,7 +257,7 @@ export const updateItem = async (clientId, itemId, updateData) => {
           : [];
 
       if (normalizedDealerIds.length > 0) {
-        const existingDealers = await Dealer.find({
+        const existingDealers = await repository.find('dealers', {
           _id: { $in: normalizedDealerIds },
           clientId,
         });
@@ -282,7 +272,8 @@ export const updateItem = async (clientId, itemId, updateData) => {
       updateData.dealerIds = normalizedDealerIds;
     }
 
-    const item = await Item.findOneAndUpdate(
+    const item = await repository.updateOne(
+      'items',
       { _id: itemId, clientId },
       { ...updateData, updatedAt: new Date() },
       { new: true },
@@ -298,7 +289,8 @@ export const updateItem = async (clientId, itemId, updateData) => {
 
 export const deleteItem = async (clientId, itemId) => {
   try {
-    const item = await Item.findOneAndUpdate(
+    const item = await repository.updateOne(
+      'items',
       { _id: itemId, clientId },
       { isActive: false },
       { new: true },
@@ -338,7 +330,7 @@ export const createclientCustomer=async(
   };
 
   try{
-    const client=await Client.findById(clientId).lean();
+    const client=await repository.findById('clients', clientId, null, { lean: true });
     if(!client) throw new Error('Client not found');
 
     const settings={
@@ -352,7 +344,7 @@ export const createclientCustomer=async(
     requireIfEnabled(settings.emailId,emailId,'Email');
     requireIfEnabled(settings.gstNo,gstNo,'GST number');
 
-    const existing=await clientCustomer.findOne({clientId,phoneNumber});
+    const existing=await repository.findOne('clientcustomers', {clientId,phoneNumber});
     if(existing){
       let changed=false;
 
@@ -378,7 +370,11 @@ export const createclientCustomer=async(
 
       if(changed){
         existing.updatedAt=new Date();
-        await existing.save();
+        await repository.updateById(
+          'clientcustomers',
+          existing._id,
+          existing,
+        );
       }
 
       return{success:true,clientCustomer:existing,isNew:false};
@@ -394,7 +390,7 @@ export const createclientCustomer=async(
     if(settings.emailId) payload.emailId=emailId;
     if(settings.gstNo) payload.gstNo=gstNo;
 
-    const created=await clientCustomer.create(payload);
+    const created=await repository.create('clientcustomers', payload);
     return{success:true,clientCustomer:created,isNew:true};
   }catch(error){
     throw new Error(`Failed to create client clientCustomer: ${error.message}`);
@@ -404,8 +400,8 @@ export const createclientCustomer=async(
 
 export const getclientCustomers = async (clientId) => {
   try {
-    const clientCustomers = await clientCustomer.find({ clientId }).sort({
-      createdAt: -1,
+    const clientCustomers = await repository.find('clientcustomers', { clientId }, null, {
+      sort: { createdAt: -1 },
     });
     return { success: true, clientCustomers };
   } catch (error) {
@@ -415,7 +411,7 @@ export const getclientCustomers = async (clientId) => {
 
 export const getClientCustomerByPhone = async (clientId, phone) => {
   try {
-    const customer = await clientCustomer.findOne({
+    const customer = await repository.findOne('clientcustomers', {
       clientId,
       phoneNumber: phone,
     });
@@ -438,7 +434,7 @@ export const updateClientCustomer=async(
   };
 
   try{
-    const client=await Client.findById(clientId).lean();
+    const client=await repository.findById('clients', clientId, null, { lean: true });
     if(!client) throw new Error('Client not found');
 
     const settings={
@@ -461,7 +457,8 @@ export const updateClientCustomer=async(
     if(settings.emailId) payload.emailId=updateData.emailId;
     if(settings.gstNo) payload.gstNo=updateData.gstNo;
 
-    const updated=await clientCustomer.findOneAndUpdate(
+    const updated=await repository.updateOne(
+      'clientcustomers',
       {_id:clientCustomerId,clientId},
       {$set:payload},
       {new:true}
@@ -478,10 +475,12 @@ export const updateClientCustomer=async(
 
 export const deleteClientCustomer=async(clientId,clientCustomerId)=>{
   try{
-    const deletedCustomer=await clientCustomer.findOneAndDelete({
-      _id:clientCustomerId,
-      clientId
-    });
+    const deletedCustomer=await repository.updateOne(
+      'clientcustomers',
+      { _id:clientCustomerId, clientId },
+      { isActive: false },
+      { new: true }
+    );
     if(!deletedCustomer)
       throw new Error('Client clientCustomer not found');
     return{success:true,message:'Client clientCustomer deleted'};
@@ -495,7 +494,7 @@ export const deleteClientCustomer=async(clientId,clientCustomerId)=>{
 // ============================================================================
 export const createCart = async (clientId, clientCustomerPhone = null) => {
   try {
-    const cart = await Cart.create({
+    const cart = await repository.create('carts', {
       clientId,
       clientCustomerPhone,
       totalAmount: 0,
@@ -516,14 +515,14 @@ export const addToCart = async (
   quantity,
 ) => {
   try {
-    const cart = await Cart.findOne({ _id: cartId, clientId });
+    const cart = await repository.findOne('carts', { _id: cartId, clientId });
     if (!cart) {
       throw new Error('Cart not found or access denied');
     }
 
     const lineTotal = unitPrice * quantity;
 
-    const cartItem = await CartItem.create({
+    const cartItem = await repository.create('cartitems', {
       cartId,
       itemId,
       itemNameSnapshot: itemName,
@@ -535,7 +534,10 @@ export const addToCart = async (
     // Update cart totals
     cart.totalAmount += lineTotal;
     cart.itemCount += 1;
-    await cart.save();
+    await repository.updateById('carts', cart._id, {
+      totalAmount: cart.totalAmount,
+      itemCount: cart.itemCount,
+    });
 
     return { success: true, cartItem };
   } catch (error) {
@@ -546,15 +548,17 @@ export const addToCart = async (
 export const removeFromCart = async (clientId, cartId, cartItemId) => {
   try {
     // Verify cart ownership first
-    const cart = await Cart.findOne({ _id: cartId, clientId });
+    const cart = await repository.findOne('carts', { _id: cartId, clientId });
     if (!cart) {
       throw new Error('Cart not found or access denied');
     }
 
-    const cartItem = await CartItem.findOneAndDelete({
-      _id: cartItemId,
-      cartId,
-    });
+    const cartItem = await repository.updateOne(
+      'cartitems',
+      { _id: cartItemId, cartId },
+      { isActive: false },
+      { new: true },
+    );
     if (!cartItem) {
       throw new Error('Cart item not found');
     }
@@ -562,7 +566,10 @@ export const removeFromCart = async (clientId, cartId, cartItemId) => {
     // Update cart totals
     cart.totalAmount -= cartItem.lineTotal;
     cart.itemCount -= 1;
-    await cart.save();
+    await repository.updateById('carts', cart._id, {
+      totalAmount: cart.totalAmount,
+      itemCount: cart.itemCount,
+    });
 
     return { success: true, message: 'Item removed from cart' };
   } catch (error) {
@@ -572,11 +579,11 @@ export const removeFromCart = async (clientId, cartId, cartItemId) => {
 
 export const getCart = async (clientId, cartId) => {
   try {
-    const cart = await Cart.findOne({ _id: cartId, clientId });
+    const cart = await repository.findOne('carts', { _id: cartId, clientId });
     if (!cart) {
       throw new Error('Cart not found or access denied');
     }
-    const cartItems = await CartItem.find({ cartId });
+    const cartItems = await repository.find('cartitems', { cartId });
     return { success: true, cart, cartItems };
   } catch (error) {
     throw new Error(`Failed to fetch cart: ${error.message}`);
@@ -586,12 +593,12 @@ export const getCart = async (clientId, cartId) => {
 export const clearCart = async (clientId, cartId) => {
   try {
     // Verify cart ownership first
-    const cart = await Cart.findOne({ _id: cartId, clientId });
+    const cart = await repository.findOne('carts', { _id: cartId, clientId });
     if (!cart) {
       throw new Error('Cart not found or access denied');
     }
-    await CartItem.deleteMany({ cartId });
-    await Cart.findByIdAndDelete(cartId);
+    await repository.deleteMany('cartitems', { cartId });
+    await repository.deleteById('carts', cartId);
     return { success: true, message: 'Cart cleared' };
   } catch (error) {
     throw new Error(`Failed to clear cart: ${error.message}`);
@@ -623,12 +630,12 @@ export const generateInvoice = async (clientId, invoiceData) => {
       throw new Error('cartId is required to generate invoice');
     }
 
-    const cart = await Cart.findById(cartId);
+    const cart = await repository.findById('carts', cartId);
     if (!cart) {
       throw new Error('Cart not found');
     }
 
-    const cartItems = await CartItem.find({ cartId });
+    const cartItems = await repository.find('cartitems', { cartId });
     if (!cartItems.length) {
       throw new Error('Cart is empty');
     }
@@ -670,7 +677,7 @@ export const generateInvoice = async (clientId, invoiceData) => {
       .map((id) => id.toString());
 
     const items = itemIds.length
-      ? await Item.find({ _id: { $in: itemIds } })
+      ? await repository.find('items', { _id: { $in: itemIds } })
       : [];
     const itemMap = new Map(
       items.map((item) => [item._id.toString(), item.toObject()]),
@@ -681,7 +688,7 @@ export const generateInvoice = async (clientId, invoiceData) => {
       .filter(Boolean)
       .map((id) => id.toString());
     const groups = groupIds.length
-      ? await ItemGroup.find({ _id: { $in: groupIds } })
+      ? await repository.find('itemgroups', { _id: { $in: groupIds } })
       : [];
     const groupMap = new Map(
       groups.map((group) => [group._id.toString(), group.name]),
@@ -702,7 +709,7 @@ export const generateInvoice = async (clientId, invoiceData) => {
       };
     });
 
-    const invoice = await Invoice.create({
+    const invoice = await repository.create('invoices', {
       clientId,
       clientCustomerId,
       clientCustomerName: nameToUse,
@@ -735,12 +742,12 @@ export const generateInvoice = async (clientId, invoiceData) => {
       }));
 
     if (stockUpdates.length > 0) {
-      await Item.bulkWrite(stockUpdates);
+      await repository.bulkWrite('items', stockUpdates);
     }
 
     // Record initial payment if any
     if (paidAmount > 0) {
-      await Payment.create({
+      await repository.create('payments', {
         clientId,
         invoiceId: invoice._id,
         amount: paidAmount,
@@ -751,7 +758,7 @@ export const generateInvoice = async (clientId, invoiceData) => {
 
     // Create purchase history when finalized and clientCustomer is present
     if (isFinalized && clientCustomerId) {
-      await PurchaseHistory.create({
+      await repository.create('purchasehistories', {
         clientId,
         clientCustomerId,
         clientCustomerPhone: phoneToUse || '',
@@ -818,7 +825,7 @@ export const generateInvoiceWithProduct = async (clientId, invoiceData) => {
       .map((id) => id.toString());
 
     const items = productIds.length
-      ? await Item.find({ _id: { $in: productIds } })
+      ? await repository.find('items', { _id: { $in: productIds } })
       : [];
     const itemMap = new Map(
       items.map((item) => [item._id.toString(), item.toObject()]),
@@ -829,7 +836,7 @@ export const generateInvoiceWithProduct = async (clientId, invoiceData) => {
       .filter(Boolean)
       .map((id) => id.toString());
     const groups = groupIds.length
-      ? await ItemGroup.find({ _id: { $in: groupIds } })
+      ? await repository.find('itemgroups', { _id: { $in: groupIds } })
       : [];
     const groupMap = new Map(
       groups.map((group) => [group._id.toString(), group.name]),
@@ -878,7 +885,7 @@ export const generateInvoiceWithProduct = async (clientId, invoiceData) => {
     const finalInvoiceNumber = invoiceNumber || `INV-${Date.now()}`;
     const isFinalized = paidAmount >= totalAmount;
 
-    const invoice = await Invoice.create({
+    const invoice = await repository.create('invoices', {
       clientId,
       clientCustomerId,
       clientCustomerName: nameToUse,
@@ -910,12 +917,12 @@ export const generateInvoiceWithProduct = async (clientId, invoiceData) => {
         },
       }));
     if (stockUpdates.length > 0) {
-      await Item.bulkWrite(stockUpdates);
+      await repository.bulkWrite('items', stockUpdates);
     }
 
     // Record initial payment if any
     if (paidAmount > 0) {
-      await Payment.create({
+      await repository.create('payments', {
         clientId,
         invoiceId: invoice._id,
         amount: paidAmount,
@@ -926,7 +933,7 @@ export const generateInvoiceWithProduct = async (clientId, invoiceData) => {
 
     // Create purchase history when finalized and clientCustomer is present
     if (isFinalized && clientCustomerId) {
-      await PurchaseHistory.create({
+      await repository.create('purchasehistories', {
         clientId,
         clientCustomerId,
         clientCustomerPhone: phoneToUse || '',
@@ -954,7 +961,7 @@ export const recordPayment = async (
   try {
     if (amount <= 0) throw new Error('Payment amount must be positive');
 
-    const invoice = await Invoice.findOne({ _id: invoiceId, clientId });
+    const invoice = await repository.findOne('invoices', { _id: invoiceId, clientId });
     if (!invoice) throw new Error('Invoice not found');
 
     const remaining = invoice.totalAmount - invoice.paidAmount;
@@ -962,7 +969,7 @@ export const recordPayment = async (
       throw new Error('Payment exceeds outstanding balance');
     }
 
-    const payment = await Payment.create({
+    const payment = await repository.create('payments', {
       clientId,
       invoiceId,
       amount,
@@ -975,14 +982,15 @@ export const recordPayment = async (
       invoice.isFinalized = true;
 
       if (invoice.clientCustomerId) {
-        const existingHistory = await PurchaseHistory.findOne({
+        const existingHistory = await repository.findOne('purchasehistories', {
           invoiceId: invoice._id,
         });
         if (!existingHistory) {
-          const customerDoc = await clientCustomer.findById(
+          const customerDoc = await repository.findById(
+            'clientcustomers',
             invoice.clientCustomerId,
           );
-          await PurchaseHistory.create({
+          await repository.create('purchasehistories', {
             clientId,
             clientCustomerId: invoice.clientCustomerId,
             clientCustomerPhone: customerDoc?.phoneNumber || '',
@@ -993,7 +1001,10 @@ export const recordPayment = async (
       }
     }
 
-    await invoice.save();
+    await repository.updateById('invoices', invoice._id, {
+      paidAmount: invoice.paidAmount,
+      isFinalized: invoice.isFinalized,
+    });
 
     const invoiceWithProducts = await buildInvoiceWithProductDetails(invoice);
 
@@ -1005,7 +1016,7 @@ export const recordPayment = async (
 
 export const getPaymentsForInvoice = async (clientId, invoiceId) => {
   try {
-    const payments = await Payment.find({ invoiceId, clientId });
+    const payments = await repository.find('payments', { invoiceId, clientId });
     return { success: true, payments };
   } catch (error) {
     throw new Error(`Failed to fetch payments: ${error.message}`);
@@ -1025,7 +1036,7 @@ export const getPendingInvoicesByClientCustomer = async (
     if (clientCustomerPhone) {
       filter.clientCustomerPhone = clientCustomerPhone;
     }
-    const rawInvoices = await Invoice.find(filter).populate('clientCustomerId');
+    const rawInvoices = await repository.find('invoices', filter, null, { populate: 'clientCustomerId' });
     const invoicesWithProducts = await Promise.all(
       rawInvoices.map((invoice) => buildInvoiceWithProductDetails(invoice)),
     );
@@ -1058,7 +1069,7 @@ export const getPaidInvoicesByClientCustomer = async (
     if (clientCustomerPhone) {
       filter.clientCustomerPhone = clientCustomerPhone;
     }
-    const invoices = await Invoice.find(filter).populate('clientCustomerId');
+    const invoices = await repository.find('invoices', filter, null, { populate: 'clientCustomerId' });
     const invoicesWithProducts = await Promise.all(
       invoices.map((invoice) => buildInvoiceWithProductDetails(invoice)),
     );
@@ -1073,9 +1084,9 @@ export const getPaidInvoicesByClientCustomer = async (
 
 export const getInvoices = async (clientId) => {
   try {
-    const invoices = await Invoice.find({ clientId }).populate(
-      'clientCustomerId',
-    );
+    const invoices = await repository.find('invoices', { clientId }, null, {
+      populate: 'clientCustomerId',
+    });
     const invoicesWithProducts = await Promise.all(
       invoices.map((invoice) => buildInvoiceWithProductDetails(invoice)),
     );
@@ -1088,7 +1099,7 @@ export const getInvoices = async (clientId) => {
 
 export const getPendingInvoices = async (clientId) => {
   try {
-    const rawInvoices = await Invoice.find({ clientId, isFinalized: false });
+    const rawInvoices = await repository.find('invoices', { clientId, isFinalized: false });
     const invoicesWithProducts = await Promise.all(
       rawInvoices.map((invoice) => buildInvoiceWithProductDetails(invoice)),
     );
@@ -1108,7 +1119,7 @@ export const getPendingInvoices = async (clientId) => {
 
 export const getPaymentReport = async (clientId) => {
   try {
-    const invoices = await Invoice.find({ clientId });
+    const invoices = await repository.find('invoices', { clientId });
     const summary = invoices.reduce(
       (acc, invoice) => {
         acc.totalInvoices += 1;
@@ -1142,9 +1153,9 @@ export const getPurchaseHistory = async (
     if (clientCustomerPhone) {
       filter.clientCustomerPhone = clientCustomerPhone;
     }
-    const purchaseHistory = await PurchaseHistory.find(filter)
-      .populate('clientCustomerId')
-      .populate('invoiceId');
+    const purchaseHistory = await repository.find('purchasehistories', filter, null, {
+      populate: ['clientCustomerId', 'invoiceId'],
+    });
     return { success: true, purchaseHistory };
   } catch (error) {
     throw new Error(`Failed to fetch purchase history: ${error.message}`);
@@ -1202,7 +1213,7 @@ export const syncClientData = async (clientId, payload = {}) => {
             clientId,
           };
         });
-        const createdItems = await Item.create(preparedItems, { session });
+        const createdItems = await repository.bulkCreate('items', preparedItems, { session });
         summary.itemsCreated += createdItems.length;
         synced.itemsCreated.push(
           ...createdItems.map((item) => item._id.toString()),
@@ -1215,7 +1226,8 @@ export const syncClientData = async (clientId, payload = {}) => {
           if (!_id) {
             throw new Error('Item update requires _id');
           }
-          const updated = await Item.findOneAndUpdate(
+          const updated = await repository.updateOne(
+            'items',
             { _id, clientId },
             { ...updateData, updatedAt: new Date() },
             { new: true, session },
@@ -1231,7 +1243,8 @@ export const syncClientData = async (clientId, payload = {}) => {
       if (itemDeletes.length) {
         for (const itemId of itemDeletes) {
           if (!itemId) continue;
-          const deleted = await Item.findOneAndUpdate(
+          const deleted = await repository.updateOne(
+            'items',
             { _id: itemId, clientId },
             { isActive: false, updatedAt: new Date() },
             { new: true, session },
@@ -1280,7 +1293,8 @@ export const syncClientData = async (clientId, payload = {}) => {
                 );
               }
 
-              const createdItem = await Item.create(
+              const createdItem = await repository.bulkCreate(
+                'items',
                 [
                   {
                     clientId,
@@ -1334,7 +1348,8 @@ export const syncClientData = async (clientId, payload = {}) => {
             throw new Error('Paid amount cannot exceed total amount');
           }
 
-          const invoiceDoc = await Invoice.create(
+          const invoiceDoc = await repository.bulkCreate(
+            'invoices',
             [
               {
                 clientId,
@@ -1364,7 +1379,8 @@ export const syncClientData = async (clientId, payload = {}) => {
 
           for (const product of normalizedProducts) {
             if (product.productId) {
-              await Item.findOneAndUpdate(
+              await repository.updateOne(
+                'items',
                 {
                   _id: product.productId,
                   clientId,
@@ -1377,7 +1393,8 @@ export const syncClientData = async (clientId, payload = {}) => {
           }
 
           if (isFinalized && createdInvoice.clientCustomerId) {
-            await PurchaseHistory.create(
+            await repository.bulkCreate(
+              'purchasehistories',
               [
                 {
                   clientId,
@@ -1404,7 +1421,8 @@ export const syncClientData = async (clientId, payload = {}) => {
             );
           }
 
-          const invoiceDoc = await Invoice.findOne(
+          const invoiceDoc = await repository.findOne(
+            'invoices',
             { _id: payment.invoiceId, clientId },
             null,
             { session },
@@ -1420,7 +1438,8 @@ export const syncClientData = async (clientId, payload = {}) => {
             throw new Error('Payment exceeds outstanding balance');
           }
 
-          const createdPayments = await Payment.create(
+          const createdPayments = await repository.bulkCreate(
+            'payments',
             [
               {
                 clientId,
@@ -1441,16 +1460,26 @@ export const syncClientData = async (clientId, payload = {}) => {
           if (invoiceDoc.paidAmount >= invoiceDoc.totalAmount) {
             invoiceDoc.isFinalized = true;
           }
-          await invoiceDoc.save({ session });
+          await repository.updateById(
+            'invoices',
+            invoiceDoc._id,
+            {
+              paidAmount: invoiceDoc.paidAmount,
+              isFinalized: invoiceDoc.isFinalized,
+            },
+            { session },
+          );
 
           if (invoiceDoc.isFinalized && invoiceDoc.clientCustomerId) {
-            const existingHistory = await PurchaseHistory.findOne(
+            const existingHistory = await repository.findOne(
+              'purchasehistories',
               { invoiceId: invoiceDoc._id },
               null,
               { session },
             );
             if (!existingHistory) {
-              await PurchaseHistory.create(
+              await repository.bulkCreate(
+                'purchasehistories',
                 [
                   {
                     clientId,
@@ -1519,7 +1548,7 @@ export const getInvoiceHistory = async (
     } = options;
 
     // Validate client customer exists
-    const customer = await clientCustomer.findOne({
+    const customer = await repository.findOne('clientcustomers', {
       _id: clientCustomerId,
       clientId,
     });
@@ -1552,14 +1581,15 @@ export const getInvoiceHistory = async (
     }
 
     // Get invoices with pagination
-    const totalCount = await Invoice.countDocuments(filter);
-    const rawInvoices = await Invoice.find(filter)
-      .sort({ generatedAt: -1 })
-      .skip(offset)
-      .limit(limit);
+    const totalCount = await repository.count('invoices', filter);
+    const rawInvoices = await repository.find('invoices', filter, null, {
+      sort: { generatedAt: -1 },
+      skip: offset,
+      limit: limit,
+    });
 
     // Get all invoices for analytics (without pagination)
-    const allInvoices = await Invoice.find({
+    const allInvoices = await repository.find('invoices', {
       clientId,
       clientCustomerId,
       ...(startDate || endDate ? { generatedAt: filter.generatedAt } : {}),
@@ -1567,7 +1597,7 @@ export const getInvoiceHistory = async (
 
     // Get payments for all invoices
     const invoiceIds = allInvoices.map((inv) => inv._id);
-    const payments = await Payment.find({ invoiceId: { $in: invoiceIds } });
+    const payments = await repository.find('payments', { invoiceId: { $in: invoiceIds } });
 
     // Build invoice data with payment details
     const invoicesWithDetails = await Promise.all(
@@ -1869,17 +1899,21 @@ const calculateInvoiceAnalytics = (invoices, payments, customer) => {
 export const getPaymentHistory = async (clientId, invoiceId) => {
   try {
     // Get invoice
-    const invoice = await Invoice.findOne({
-      _id: invoiceId,
-      clientId,
-    }).populate('clientCustomerId');
+    const invoice = await repository.findOne('invoices',
+      {
+        _id: invoiceId,
+        clientId,
+      },
+      null,
+      { populate: 'clientCustomerId' },
+    );
     if (!invoice) {
       throw new Error('Invoice not found');
     }
 
     // Get all payments for this invoice
-    const payments = await Payment.find({ invoiceId, clientId }).sort({
-      createdAt: 1,
+    const payments = await repository.find('payments', { invoiceId, clientId }, null, {
+      sort: { createdAt: 1 },
     });
 
     // Build payment details with cumulative info
@@ -2196,21 +2230,22 @@ export const getAllInvoiceHistory = async (clientId, options = {}) => {
     }
 
     // Get invoices with pagination
-    const totalCount = await Invoice.countDocuments(filter);
-    const rawInvoices = await Invoice.find(filter)
-      .sort({ generatedAt: -1 })
-      .skip(offset)
-      .limit(limit);
+    const totalCount = await repository.count('invoices', filter);
+    const rawInvoices = await repository.find('invoices', filter, null, {
+      sort: { generatedAt: -1 },
+      skip: offset,
+      limit: limit,
+    });
 
     // Get all invoices for analytics (without pagination)
-    const allInvoices = await Invoice.find({
+    const allInvoices = await repository.find('invoices', {
       clientId,
       ...(startDate || endDate ? { generatedAt: filter.generatedAt } : {}),
     });
 
     // Get payments for all invoices
     const invoiceIds = allInvoices.map((inv) => inv._id);
-    const payments = await Payment.find({ invoiceId: { $in: invoiceIds } });
+    const payments = await repository.find('payments', { invoiceId: { $in: invoiceIds } });
 
     // Build invoice data with payment details
     const invoicesWithDetails = await Promise.all(
@@ -2500,9 +2535,9 @@ const calculateAllInvoicesAnalytics = (invoices, payments) => {
 export const getAllPaymentHistory = async (clientId) => {
   try {
     // Get all invoices for this client
-    const invoices = await Invoice.find({ clientId }).populate(
-      'clientCustomerId',
-    );
+    const invoices = await repository.find('invoices', { clientId }, null, {
+      populate: 'clientCustomerId',
+    });
     if (invoices.length === 0) {
       return {
         success: true,
@@ -2535,8 +2570,8 @@ export const getAllPaymentHistory = async (clientId) => {
     }
 
     // Get all payments for this client
-    const payments = await Payment.find({ clientId }).sort({
-      createdAt: 1,
+    const payments = await repository.find('payments', { clientId }, null, {
+      sort: { createdAt: 1 },
     });
 
     // Build payment details with invoice information
