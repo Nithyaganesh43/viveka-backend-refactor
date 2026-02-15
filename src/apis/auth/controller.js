@@ -2,7 +2,7 @@ import {
   registerClient,
   loginClient,
   logoutClient,
-} from '../../services/authService.js';
+} from './service.js';
 import {
   created,
   success,

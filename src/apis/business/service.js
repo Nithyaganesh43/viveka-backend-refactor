@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import repository from '../repository/repository.js';
+import repository from '../../repository/repository.js';
 
 // Helper to return invoice products as stored snapshots
 const buildInvoiceWithProductDetails = async (invoiceDoc) => {

@@ -1,4 +1,4 @@
-import { sendOTP } from '../../services/otpService.js';
+import { sendOTP } from './service.js';
 import { success, serverError } from '../../utils/response.js';
 
 export const sendOTPController = async (req, res) => {

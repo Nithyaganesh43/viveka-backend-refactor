@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import repository from '../repository/repository.js';
+import repository from '../../repository/repository.js';
 
 const MONTH_LABELS = [
   'Jan',

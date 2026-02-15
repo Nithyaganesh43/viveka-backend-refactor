@@ -1,4 +1,4 @@
-import repository from '../repository/repository.js';
+import repository from '../../repository/repository.js';
 import bcrypt from 'bcrypt';
 
 const OTP_TTL_SECONDS = 600;

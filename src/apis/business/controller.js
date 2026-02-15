@@ -1,4 +1,4 @@
-import * as businessService from '../../services/businessService.js';
+import * as businessService from './service.js';
 import {
   created,
   success,

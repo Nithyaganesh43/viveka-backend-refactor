@@ -1,4 +1,4 @@
-import { syncClientData } from '../../services/businessService.js';
+import { syncClientData } from './service.js';
 import { success, serverError } from '../../utils/response.js';
 
 export const readyToSyncController = async (req, res) => {

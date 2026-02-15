@@ -1,4 +1,4 @@
-import * as dashboardService from '../../services/dashboardService.js';
+import * as dashboardService from './service.js';
 import { success, serverError } from '../../utils/response.js';
 
 export const getDashboardSummaryController = async (req, res) => {

@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
-import repository from '../repository/repository.js';
-import { verifyOTP } from './otpService.js';
-import { defaultCustomerFieldSettings } from './clientService.js';
+import repository from '../../repository/repository.js';
+import { verifyOTP } from '../otp/service.js';
+import { defaultCustomerFieldSettings } from '../client/service.js';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {

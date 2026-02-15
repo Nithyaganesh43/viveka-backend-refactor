@@ -1,4 +1,4 @@
-import repository from '../repository/repository.js';
+import repository from '../../repository/repository.js';
 import axios from 'axios';
 import bcrypt from 'bcrypt';
 

@@ -1,7 +1,7 @@
 import {
   getClientDetails,
   updateClientProfile,
-} from '../../services/clientService.js';
+} from './service.js';
 import { success, badRequest, notFound } from '../../utils/response.js';
 
 export const getClientController = async (req, res) => {
