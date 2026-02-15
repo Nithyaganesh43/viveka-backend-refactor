@@ -1,5 +1,5 @@
 import express from 'express';
-import { getClientController,  updateClientController} from './controller.js';
+import { getClientController,  updateClientController,} from './controller.js';
 import { authenticateToken } from '../../middleware/authMiddleware.js';
 import { validate, validateMultiple, clientIdParam, updateClientSchema } from './validation.js';
 
