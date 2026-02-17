@@ -44,9 +44,6 @@ const testData = {
   deletableItemGroupId: null,
   itemId: null,
   deletableItemId: null,
-  dealerId: null,
-  dealerOrderId: null,
-  dealerPaymentId: null,
   clientCustomerId: null,
   cartId: null,
   cartItemId: null,
@@ -766,7 +763,6 @@ const tests = {
   },
 
   createItem: async () => {
-    // Dealer module removed - items no longer have dealerIds
     const response = await api.post('/business/items', {
       clientId: testData.clientId,
       name: 'Test Item',
@@ -784,42 +780,7 @@ const tests = {
     created.items.push(testData.itemId);
   },
 
-  createItemWithoutDealers: async () => {
-    // Items are created without dealers (dealer module removed)
-    const response = await api.post('/business/items', {
-      clientId: testData.clientId,
-      name: 'Item Without Dealer',
-      price: 100,
-      unit: 'nos',
-    });
-    assertTrue(
-      response.status === 201,
-      'Create item without dealers should return 201',
-    );
-    assertTrue(
-      response.data.success === true,
-      'Create item without dealers should succeed',
-    );
-    // Clean up
-    if (response.data.item._id) {
-      created.items.push(response.data.item._id);
-    }
-  },
 
-  createItemWithEmptyDealerArray: async () => {
-    // SKIP: Dealer module has been removed
-    log('SKIPPED: Dealer module removed', 'warn');
-  },
-
-  createItemWithInvalidDealer: async () => {
-    // SKIP: Dealer module has been removed
-    log('SKIPPED: Dealer module removed', 'warn');
-  },
-
-  createItemWithMultipleDealers: async () => {
-    // SKIP: Dealer module has been removed
-    log('SKIPPED: Dealer module removed', 'warn');
-  },
 
   updateItem: async () => {
     const response = await api.put(
@@ -1715,7 +1676,6 @@ deleteClientCustomer: async () => {
   },
 
   createSyncDeleteItem: async () => {
-    // Dealer module removed - items no longer have dealerIds
     const response = await api.post('/business/items', {
       clientId: testData.clientId,
       name: 'Sync Delete Item',
@@ -1974,98 +1934,82 @@ const runAllTests = async () => {
     await test('10. Delete Temp Item Group', tests.deleteItemGroup);
     await test('11. Get Item Groups', tests.getItemGroups);
     await test('12. Create Item', tests.createItem);
+    await test('13. Update Item', tests.updateItem);
+    await test('14. Get Items', tests.getItems);
+    await test('15. Get Items By Group', tests.getItemsByGroup);
+    await test('16. Create Temp Item', tests.createItemToDelete);
+    await test('17. Delete Temp Item', tests.deleteItem);
+    await test('18. Create Client Customer', tests.getOrCreateCustomer);
     await test(
-      '13. Create Item Without Dealers (optional)',
-      tests.createItemWithoutDealers,
-    );
-    await test(
-      '14. Create Item With Empty Dealer Array',
-      tests.createItemWithEmptyDealerArray,
-    );
-    await test(
-      '15. Create Item With Invalid Dealer (should fail)',
-      tests.createItemWithInvalidDealer,
-    );
-    await test(
-      '16. Create Item With Multiple Dealers',
-      tests.createItemWithMultipleDealers,
-    );
-    await test('17. Update Item', tests.updateItem);
-    await test('18. Get Items', tests.getItems);
-    await test('19. Get Items By Group', tests.getItemsByGroup);
-    await test('20. Create Temp Item', tests.createItemToDelete);
-    await test('21. Delete Temp Item', tests.deleteItem);
-    await test('22. Create Client Customer', tests.getOrCreateCustomer);
-    await test(
-      '23. Update Client Customer Address',
+      '19. Update Client Customer Address',
       tests.updateCustomerAddress,
     );
-    await test('24. Get Client Customers', tests.getCustomers); 
+    await test('20. Get Client Customers', tests.getCustomers);
     await test(
-      '25. Create Temp Client Customer',
+      '21. Create Temp Client Customer',
       tests.createClientCustomerToDelete,
     );
-    await test('26. Update Client Customer', tests.updateClientCustomer);
-    await test('27B. Delete Client Customer', tests.deleteClientCustomer);
+    await test('22. Update Client Customer', tests.updateClientCustomer);
+    await test('23. Delete Client Customer', tests.deleteClientCustomer);
 
-    await test('27. Create Cart', tests.createCart);
-    await test('28. Add To Cart', tests.addToCart);
-    await test('29. Get Cart', tests.getCart);
-    await test('30. Remove From Cart', tests.removeFromCart);
-    await test('31. Clear Cart', tests.clearCart);
-    await test('32. Create Cart For Invoice', tests.createCartForInvoice);
-    await test('33. Generate Invoice (unpaid)', tests.generateInvoice);
+    await test('24. Create Cart', tests.createCart);
+    await test('25. Add To Cart', tests.addToCart);
+    await test('26. Get Cart', tests.getCart);
+    await test('27. Remove From Cart', tests.removeFromCart);
+    await test('28. Clear Cart', tests.clearCart);
+    await test('29. Create Cart For Invoice', tests.createCartForInvoice);
+    await test('30. Generate Invoice (unpaid)', tests.generateInvoice);
     await test(
-      '34. Generate Invoice With Products',
+      '31. Generate Invoice With Products',
       tests.generateInvoiceWithProducts,
     );
-    await test('35. Record Payment 1', tests.recordPayment1);
-    await test('36. Record Payment 2', tests.recordPayment2);
-    await test('37. Get Payments For Invoice', tests.getPaymentsForInvoice);
-    await test('38. Create Pending Invoice', tests.createPendingInvoice);
-    await test('39. Get Pending Invoices', tests.getPendingInvoices);
+    await test('32. Record Payment 1', tests.recordPayment1);
+    await test('33. Record Payment 2', tests.recordPayment2);
+    await test('34. Get Payments For Invoice', tests.getPaymentsForInvoice);
+    await test('35. Create Pending Invoice', tests.createPendingInvoice);
+    await test('36. Get Pending Invoices', tests.getPendingInvoices);
     await test(
-      '40. Get Pending Invoices By Customer',
+      '37. Get Pending Invoices By Customer',
       tests.getPendingInvoicesByClientCustomer,
     );
     await test(
-      '41. Get Paid Invoices By Customer',
+      '38. Get Paid Invoices By Customer',
       tests.getPaidInvoicesByClientCustomer,
     );
-    await test('42. Get Payment Report', tests.getPaymentReport);
-    await test('43. Get Purchase History', tests.getPurchaseHistory);
+    await test('39. Get Payment Report', tests.getPaymentReport);
+    await test('40. Get Purchase History', tests.getPurchaseHistory);
     await test(
-      '44. Get Purchase History By Phone',
+      '41. Get Purchase History By Phone',
       tests.getPurchaseHistoryByPhone,
     );
-    await test('45. Get All Invoices', tests.getInvoices);
+    await test('42. Get All Invoices', tests.getInvoices);
     await test(
-      '46. Get Invoice History (Per Customer)',
+      '43. Get Invoice History (Per Customer)',
       tests.getInvoiceHistoryPerCustomer,
     );
     await test(
-      '47. Get Invoice History (Per Customer with Filters)',
+      '44. Get Invoice History (Per Customer with Filters)',
       tests.getInvoiceHistoryPerCustomerWithFilters,
     );
-    await test('48. Get All Invoice History', tests.getAllInvoiceHistory);
+    await test('45. Get All Invoice History', tests.getAllInvoiceHistory);
     await test(
-      '49. Get All Invoice History (with Filters)',
+      '46. Get All Invoice History (with Filters)',
       tests.getAllInvoiceHistoryWithFilters,
     );
     await test(
-      '50. Get Payment History (Per Invoice)',
+      '47. Get Payment History (Per Invoice)',
       tests.getPaymentHistoryPerInvoice,
     );
-    await test('51. Get All Payment History', tests.getAllPaymentHistory);
-    await test('52. Get Dashboard Summary', tests.getDashboardSummary);
-    await test('53. Get Dashboard Sales Trends', tests.getDashboardSalesTrends);
-    await test('54. Get Dashboard Top Items', tests.getDashboardTopItems);
-    await test('55. Get Full Dashboard', tests.getFullDashboard);
-    await test('56. Ready To Sync', tests.readyToSync);
-    await test('57. Create Sync Delete Item', tests.createSyncDeleteItem);
-    await test('58. Sync Offline Data', tests.syncOfflineData);
+    await test('48. Get All Payment History', tests.getAllPaymentHistory);
+    await test('49. Get Dashboard Summary', tests.getDashboardSummary);
+    await test('50. Get Dashboard Sales Trends', tests.getDashboardSalesTrends);
+    await test('51. Get Dashboard Top Items', tests.getDashboardTopItems);
+    await test('52. Get Full Dashboard', tests.getFullDashboard);
+    await test('53. Ready To Sync', tests.readyToSync);
+    await test('54. Create Sync Delete Item', tests.createSyncDeleteItem);
+    await test('55. Sync Offline Data', tests.syncOfflineData);
 
-    await test('59. Logout Client', tests.logoutClient);
+    await test('56. Logout Client', tests.logoutClient);
   } catch (error) {
     fatalError = error;
     log(`Fatal Error: ${error.message}`, 'error');
@@ -2090,5 +2034,4 @@ runAllTests().catch((error) => {
       log(`Cleanup failure: ${cleanupError.message}`, 'error'),
     )
     .finally(() => process.exit(1));
-});
-`x`
+}); 

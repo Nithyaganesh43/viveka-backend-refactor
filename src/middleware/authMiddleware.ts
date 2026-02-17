@@ -1,0 +1,110 @@
+import { Request, Response, NextFunction } from "express";
+import jwt, { JwtPayload } from "jsonwebtoken";
+import { Client, DeviceSession } from "../models/Model";
+
+const JWT_SECRET = process.env.JWT_SECRET as string;
+
+if (!JWT_SECRET) {
+  throw new Error("JWT_SECRET environment variable is required");
+}
+
+interface TokenPayload extends JwtPayload {
+  clientId: string;
+  deviceSessionId: string;
+  phoneNumber?: string;
+}
+
+export const authenticateToken = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const authHeader =
+      req.headers.authorization || (req.headers.Authorization as string);
+
+    const bearerToken =
+      authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+
+    const token = bearerToken || req.body?.token;
+
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: "Authorization token is required",
+      });
+    }
+
+    let payload: TokenPayload;
+
+    try {
+      payload = jwt.verify(token, JWT_SECRET) as TokenPayload;
+    } catch {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid or expired token",
+      });
+    }
+
+    const clientId = payload.clientId?.toString();
+    const deviceSessionId = payload.deviceSessionId?.toString();
+
+    if (!clientId || !deviceSessionId) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid token payload",
+      });
+    }
+
+    const [session, client] = await Promise.all([
+      DeviceSession.findOne({
+        _id: deviceSessionId,
+        clientId,
+        isActive: true,
+      }),
+      Client.findById(clientId),
+    ]);
+
+    if (!session) {
+      return res.status(401).json({
+        success: false,
+        message: "Session expired or logged out. Please log in again.",
+      });
+    }
+
+    if (!client || client.isActive === false) {
+      return res.status(403).json({
+        success: false,
+        message: "Account is inactive",
+      });
+    }
+
+    session.lastSeenAt = new Date();
+    await session.save();
+
+    req.auth = {
+      token,
+      clientId,
+      deviceSessionId,
+      phoneNumber: payload.phoneNumber,
+    };
+
+    const providedClientId =
+      req.body?.clientId?.toString() ||
+      req.params?.clientId?.toString();
+
+    if (providedClientId && providedClientId !== clientId) {
+      return res.status(403).json({
+        success: false,
+        message: "Client ID does not match token",
+      });
+    }
+
+    next();
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
